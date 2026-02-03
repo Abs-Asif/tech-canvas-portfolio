@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { Menu, X } from "lucide-react";
 
 const navItems = [
   { label: "About", href: "#about" },
@@ -11,6 +12,7 @@ const navItems = [
 
 export const Header = () => {
   const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,6 +21,8 @@ export const Header = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const closeMobileMenu = () => setMobileMenuOpen(false);
 
   return (
     <header
@@ -37,6 +41,7 @@ export const Header = () => {
           AB
         </a>
 
+        {/* Desktop Navigation */}
         <ul className="hidden md:flex items-center gap-1">
           {navItems.map((item) => (
             <li key={item.href}>
@@ -52,30 +57,51 @@ export const Header = () => {
 
         <a
           href="#contact"
-          className="hidden md:inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-primary text-primary-foreground transition-all duration-200 hover:shadow-surface-hover active:scale-[0.98]"
+          className="hidden md:inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-primary text-primary-foreground transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
         >
           Get in Touch
         </a>
 
         {/* Mobile menu button */}
-        <button className="md:hidden p-2 rounded-full hover:bg-secondary transition-colors">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <line x1="4" x2="20" y1="12" y2="12" />
-            <line x1="4" x2="20" y1="6" y2="6" />
-            <line x1="4" x2="20" y1="18" y2="18" />
-          </svg>
+        <button 
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="md:hidden p-2 rounded-full hover:bg-secondary transition-colors"
+          aria-label="Toggle menu"
+        >
+          {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </nav>
+
+      {/* Mobile Navigation */}
+      <div
+        className={cn(
+          "md:hidden absolute top-16 left-0 right-0 bg-background/95 backdrop-blur-lg border-b border-border transition-all duration-300 overflow-hidden",
+          mobileMenuOpen ? "max-h-80 opacity-100" : "max-h-0 opacity-0"
+        )}
+      >
+        <ul className="container py-4 space-y-1">
+          {navItems.map((item) => (
+            <li key={item.href}>
+              <a
+                href={item.href}
+                onClick={closeMobileMenu}
+                className="block px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground transition-all duration-200 hover:text-foreground hover:bg-secondary"
+              >
+                {item.label}
+              </a>
+            </li>
+          ))}
+          <li className="pt-2">
+            <a
+              href="#contact"
+              onClick={closeMobileMenu}
+              className="block text-center px-4 py-3 rounded-xl text-sm font-medium bg-primary text-primary-foreground"
+            >
+              Get in Touch
+            </a>
+          </li>
+        </ul>
+      </div>
     </header>
   );
 };

@@ -5,6 +5,15 @@
 /* Material You 3 Design System - Software/Tech Theme */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+/* Kalpurush font for Bangla text */
+@font-face {
+  font-family: 'Kalpurush';
+  src: url('/fonts/kalpurush.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
   :root {
     /* Material You 3 - Teal/Cyan Tech Theme */
@@ -32,7 +41,7 @@
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 200 15% 88%;
+    --border: 200 15% 90%;
     --input: 200 15% 88%;
     --ring: 185 60% 35%;
 
@@ -45,9 +54,9 @@
     --on-surface: 200 25% 15%;
     --on-surface-variant: 200 15% 40%;
     
-    --shadow-sm: 0 1px 2px 0 hsl(200 25% 10% / 0.05);
-    --shadow-md: 0 4px 12px -2px hsl(200 25% 10% / 0.08);
-    --shadow-lg: 0 12px 32px -4px hsl(200 25% 10% / 0.12);
+    --shadow-sm: 0 1px 2px 0 hsl(200 25% 10% / 0.03);
+    --shadow-md: 0 4px 12px -2px hsl(200 25% 10% / 0.05);
+    --shadow-lg: 0 12px 32px -4px hsl(200 25% 10% / 0.08);
     
     /* Tech accent gradient */
     --gradient-tech: linear-gradient(135deg, hsl(185 60% 35%), hsl(200 50% 45%));
@@ -104,35 +113,17 @@
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Inter', system-ui, sans-serif;
   }
+
+  /* Apply Kalpurush to Bangla text */
+  .font-bangla {
+    font-family: 'Kalpurush', 'Inter', system-ui, sans-serif;
+  }
 }
 
 @layer components {
-  /* Material You 3 Surface Cards */
-  .surface-card {
-    @apply bg-card rounded-3xl border border-border;
-    box-shadow: var(--shadow-md);
-    transition: box-shadow 0.3s ease, transform 0.3s ease;
-  }
-
-  .surface-card:hover {
-    box-shadow: var(--shadow-lg);
-  }
-
-  /* Material You 3 Chip */
-  .chip {
-    @apply inline-flex items-center px-4 py-2 rounded-full text-sm font-medium;
-    @apply bg-secondary text-secondary-foreground;
-    transition: background-color 0.2s ease, transform 0.2s ease;
-  }
-
-  .chip:hover {
-    @apply bg-accent text-accent-foreground;
-    transform: translateY(-1px);
-  }
-
   /* Section styling */
   .section-title {
-    @apply text-sm font-semibold uppercase tracking-wider text-primary mb-4;
+    @apply text-sm font-semibold uppercase tracking-wider text-primary mb-6;
   }
 
   /* Tech gradient text */
@@ -141,6 +132,15 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+
+  /* Timeline styles */
+  .timeline-line {
+    @apply absolute left-4 top-0 bottom-0 w-px bg-border;
+  }
+
+  .timeline-dot {
+    @apply absolute left-4 w-2 h-2 rounded-full bg-primary -translate-x-1/2 mt-2;
   }
 }
 
@@ -187,6 +187,15 @@
   }
 }
 
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
 .animate-fade-in-up {
   animation: fade-in-up 0.6s ease-out forwards;
 }
@@ -201,6 +210,10 @@
 
 .animate-slide-in-left {
   animation: slide-in-left 0.5s ease-out forwards;
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
 }
 
 /* Staggered animation delays */

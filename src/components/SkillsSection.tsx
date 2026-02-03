@@ -1,5 +1,4 @@
 import { Section } from "./Section";
-import { SurfaceCard } from "./SurfaceCard";
 import { Languages, Briefcase } from "lucide-react";
 
 const languages = [
@@ -16,26 +15,29 @@ const experience = {
 export const SkillsSection = () => {
   return (
     <Section id="skills" title="Skills & Experience">
-      <div className="grid md:grid-cols-2 gap-6">
-        <SurfaceCard className="animate-fade-in-up opacity-0" style={{ animationDelay: "100ms", animationFillMode: "forwards" }}>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-xl bg-accent">
-              <Languages size={20} className="text-accent-foreground" />
-            </div>
-            <h3 className="text-xl font-semibold text-foreground">Languages</h3>
+      <div className="grid md:grid-cols-2 gap-12">
+        {/* Languages */}
+        <div 
+          className="animate-fade-in-up opacity-0"
+          style={{ animationDelay: "100ms", animationFillMode: "forwards" }}
+        >
+          <div className="flex items-center gap-2 mb-6">
+            <Languages size={20} className="text-primary" />
+            <h3 className="text-lg font-semibold text-foreground">Languages</h3>
           </div>
-          <div className="space-y-4">
+          
+          <div className="space-y-6">
             {languages.map((lang) => (
               <div key={lang.name}>
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-3">
                   <span className="font-medium text-foreground">{lang.name}</span>
-                  <span className="text-sm text-primary">{lang.level}</span>
+                  <span className="text-sm text-primary font-medium">{lang.level}</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {lang.proficiency.map((skill) => (
                     <span
                       key={skill}
-                      className="px-3 py-1 rounded-full text-xs font-medium bg-secondary text-secondary-foreground"
+                      className="px-3 py-1.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground"
                     >
                       {skill}
                     </span>
@@ -44,21 +46,28 @@ export const SkillsSection = () => {
               </div>
             ))}
           </div>
-        </SurfaceCard>
+        </div>
 
-        <SurfaceCard className="animate-fade-in-up opacity-0" style={{ animationDelay: "200ms", animationFillMode: "forwards" }}>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-xl bg-accent">
-              <Briefcase size={20} className="text-accent-foreground" />
-            </div>
-            <h3 className="text-xl font-semibold text-foreground">Experience</h3>
+        {/* Experience */}
+        <div 
+          className="animate-fade-in-up opacity-0"
+          style={{ animationDelay: "200ms", animationFillMode: "forwards" }}
+        >
+          <div className="flex items-center gap-2 mb-6">
+            <Briefcase size={20} className="text-primary" />
+            <h3 className="text-lg font-semibold text-foreground">Experience</h3>
           </div>
-          <div className="p-4 rounded-2xl bg-surface-2">
-            <h4 className="font-medium text-foreground">{experience.role}</h4>
-            <p className="text-muted-foreground text-sm">{experience.institute}</p>
-            <p className="text-xs text-muted-foreground mt-2">Duration: {experience.duration}</p>
+          
+          <div className="p-5 rounded-2xl bg-secondary/50 border border-border">
+            <h4 className="font-semibold text-foreground mb-1">{experience.role}</h4>
+            <p className="text-muted-foreground">{experience.institute}</p>
+            <p className="text-sm text-muted-foreground mt-3">
+              <span className="inline-flex items-center px-2 py-0.5 rounded bg-accent/50 text-accent-foreground text-xs">
+                {experience.duration}
+              </span>
+            </p>
           </div>
-        </SurfaceCard>
+        </div>
       </div>
     </Section>
   );
