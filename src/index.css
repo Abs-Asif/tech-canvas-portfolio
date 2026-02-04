@@ -1,9 +1,9 @@
+/* Material You 3 Design System - Software/Tech Theme */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Material You 3 Design System - Software/Tech Theme */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 /* Kalpurush font for Bangla text */
 @font-face {
