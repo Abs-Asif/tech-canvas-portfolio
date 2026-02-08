@@ -46,7 +46,7 @@ const FacebookIcon = ({ size = 20 }: { size?: number }) => (
 
 export const ContactSection = () => {
   return (
-    <Section id="contact" title="Get in Touch" index="05">
+    <Section id="contact" title="Get in Touch" index="04">
       <div className="max-w-5xl mx-auto">
         <div className="grid lg:grid-cols-2 gap-12 items-start">
           {/* Contact Details */}
@@ -99,7 +99,7 @@ export const ContactSection = () => {
 
                 {/* Facebook */}
                 <a
-                  href="https://www.facebook.com/share/1KVojpMNrw/"
+                  href="https://www.facebook.com/abdullahbariasif"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-start gap-4 p-4 rounded-xl bg-secondary/20 border border-border/50 hover:border-primary/50 transition-all group"
@@ -160,10 +160,12 @@ export const ContactSection = () => {
               </p>
 
               <a
-                href="mailto:abdullah.bari.2028@gmail.com"
+                href="https://wa.me/8801538310838"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-8 py-4 rounded-lg text-sm font-mono font-bold bg-primary text-primary-foreground transition-all duration-300 hover:shadow-[0_0_20px_rgba(34,197,94,0.4)] hover:-translate-y-1 active:scale-[0.98]"
               >
-                <Send size={16} />
+                <MessageCircle size={16} />
                 send_message
               </a>
             </div>

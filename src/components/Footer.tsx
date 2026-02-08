@@ -32,11 +32,6 @@ export const Footer = () => {
           </div>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-border/30 text-center">
-          <p className="text-[10px] font-mono text-muted-foreground/50 italic leading-relaxed">
-            "Technology is best when it brings people together and improves lives."
-          </p>
-        </div>
       </div>
     </footer>
   );

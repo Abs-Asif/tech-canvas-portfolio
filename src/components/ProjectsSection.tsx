@@ -1,6 +1,6 @@
 import { Section } from "./Section";
 import { Smartphone, Globe, ExternalLink, Code2 } from "lucide-react";
-import gramroktiLogo from "@/assets/gramrokti-logo.png";
+import gramroktiLogo from "@/assets/atitilogo.png";
 import greenhutLogo from "@/assets/greenhut-logo.png";
 
 const projects = [
@@ -11,7 +11,7 @@ const projects = [
     logo: gramroktiLogo,
     description: "A mobile application designed to connect blood donors with recipients in rural areas of Bangladesh.",
     isBangla: true,
-    tech: ["Android", "Java", "Firebase"]
+    tech: ["Android", "React", "Vite", "Capacitor", "Supabase", "Firebase"]
   },
   {
     title: "Greenhutbd Inventory Management",
@@ -20,13 +20,13 @@ const projects = [
     logo: greenhutLogo,
     description: "A comprehensive web-based inventory management system for streamlining business operations and stock tracking.",
     isBangla: false,
-    tech: ["React", "Node.js", "MongoDB"]
+    tech: ["webapp", "React", "Vite", "Supabase", "Woocommerce"]
   },
 ];
 
 export const ProjectsSection = () => {
   return (
-    <Section id="projects" title="Latest Work" index="04">
+    <Section id="projects" title="Latest Work" index="03">
       <div className="grid md:grid-cols-2 gap-8">
         {projects.map((project, index) => (
           <div
@@ -83,8 +83,7 @@ export const ProjectsSection = () => {
                   ))}
                 </div>
 
-                <div className="pt-4 border-t border-border/50 flex justify-between items-center">
-                  <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Repository Status: Public</span>
+                <div className="pt-4 border-t border-border/50 flex justify-end items-center">
                   <a
                     href="#"
                     className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-primary hover:text-white transition-colors group/link"
