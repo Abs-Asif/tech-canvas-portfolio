@@ -1,7 +1,11 @@
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Bot } from "lucide-react";
 import profilePhoto from "@/assets/profile-photo.png";
 
-export const HeroSection = () => {
+interface HeroSectionProps {
+  onOpenAssistant: () => void;
+}
+
+export const HeroSection = ({ onOpenAssistant }: HeroSectionProps) => {
   return (
     <section className="min-h-screen flex items-center pt-24 pb-12 relative overflow-hidden">
       {/* Background decoration */}
@@ -29,22 +33,34 @@ export const HeroSection = () => {
               I'm <span className="text-foreground font-semibold">Md. Abdullah Bari</span>, an aspiring software developer and medical student. I specialize in building bridges between technology and healthcare through code.
             </p>
 
-            <div className="flex flex-wrap justify-center lg:justify-start gap-4 mb-10 animate-fade-in-up opacity-0" style={{ animationDelay: "400ms", animationFillMode: "forwards" }}>
-              <a
-                href="#projects"
-                className="group inline-flex items-center gap-2 px-8 py-4 rounded-lg text-sm font-mono font-bold bg-primary text-primary-foreground transition-all duration-300 hover:shadow-[0_0_20px_rgba(34,197,94,0.4)] active:scale-[0.98]"
-              >
-                view_work()
-                <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
-              </a>
-              <a
-                href="https://wa.me/8801538310838"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-8 py-4 rounded-lg text-sm font-mono font-bold border border-border bg-background/50 backdrop-blur-sm text-foreground transition-all duration-300 hover:bg-secondary active:scale-[0.98]"
-              >
-                contact_me
-              </a>
+            <div className="flex flex-col gap-4 mb-10 animate-fade-in-up opacity-0" style={{ animationDelay: "400ms", animationFillMode: "forwards" }}>
+              <div className="flex flex-wrap justify-center lg:justify-start gap-4">
+                <a
+                  href="#projects"
+                  className="group inline-flex items-center gap-2 px-8 py-4 rounded-lg text-sm font-mono font-bold bg-primary text-primary-foreground transition-all duration-300 hover:shadow-[0_0_20px_rgba(34,197,94,0.4)] active:scale-[0.98]"
+                >
+                  view_work()
+                  <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
+                </a>
+                <a
+                  href="https://wa.me/8801538310838"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-8 py-4 rounded-lg text-sm font-mono font-bold border border-border bg-background/50 backdrop-blur-sm text-foreground transition-all duration-300 hover:bg-secondary active:scale-[0.98]"
+                >
+                  contact_me
+                </a>
+              </div>
+
+              <div className="flex justify-center lg:justify-start">
+                <button
+                  onClick={onOpenAssistant}
+                  className="group inline-flex items-center gap-2 px-8 py-3 rounded-lg text-xs font-mono font-bold border border-primary/30 bg-primary/5 text-primary transition-all duration-300 hover:bg-primary/10 hover:border-primary/50 active:scale-[0.98]"
+                >
+                  <Bot size={16} className="transition-transform group-hover:rotate-12" />
+                  Talk to my Assistant
+                </button>
+              </div>
             </div>
 
           </div>
