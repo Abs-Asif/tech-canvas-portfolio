@@ -1,32 +1,43 @@
 import { Section } from "./Section";
 import { Smartphone, Globe, ExternalLink, Code2 } from "lucide-react";
-import gramroktiLogo from "@/assets/gramrokti-logo.png";
+import gramroktiLogo from "@/assets/atitilogo.png";
 import greenhutLogo from "@/assets/greenhut-logo.png";
 
 const projects = [
   {
     title: "গ্রামরক্তি",
+    filename: "GramRokti.js",
     type: "Android Application",
     icon: Smartphone,
     logo: gramroktiLogo,
+    url: "https://Gramrokti.vercel.app",
     description: "A mobile application designed to connect blood donors with recipients in rural areas of Bangladesh.",
     isBangla: true,
-    tech: ["Android", "Java", "Firebase"]
+    tech: ["Android", "React", "Vite", "Capacitor", "Supabase", "Firebase", "Minimalist", "Offline", "Non profit"]
   },
   {
     title: "Greenhutbd Inventory Management",
+    filename: "greenhutbd_inventory_man...",
     type: "Web Application",
     icon: Globe,
     logo: greenhutLogo,
+    url: "https://Inventory.greenhutbd.com",
     description: "A comprehensive web-based inventory management system for streamlining business operations and stock tracking.",
     isBangla: false,
-    tech: ["React", "Node.js", "MongoDB"]
+    tech: ["webapp", "React", "Vite", "Supabase", "Woocommerce", "Comprehensive", "Business", "Inventory"]
   },
 ];
 
 export const ProjectsSection = () => {
   return (
-    <Section id="projects" title="Latest Work" index="04">
+    <Section id="projects">
+      <div className="text-center mb-16 animate-fade-in-up opacity-0" style={{ animationFillMode: 'forwards' }}>
+        <h3 className="text-4xl font-bold text-foreground mb-4">My recent Projects</h3>
+        <p className="text-muted-foreground max-w-lg mx-auto">
+          A showcase of my recent work in mobile development and web systems.
+        </p>
+      </div>
+
       <div className="grid md:grid-cols-2 gap-8">
         {projects.map((project, index) => (
           <div
@@ -39,7 +50,7 @@ export const ProjectsSection = () => {
               <div className="flex items-center gap-2">
                 <Code2 size={12} className="text-primary" />
                 <span className="text-[10px] font-mono text-muted-foreground truncate max-w-[150px]">
-                  {project.title.toLowerCase().replace(/\s+/g, '_')}.js
+                  {project.filename}
                 </span>
               </div>
               <div className="flex gap-1">
@@ -83,10 +94,11 @@ export const ProjectsSection = () => {
                   ))}
                 </div>
 
-                <div className="pt-4 border-t border-border/50 flex justify-between items-center">
-                  <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Repository Status: Public</span>
+                <div className="pt-4 border-t border-border/50 flex justify-end items-center">
                   <a
-                    href="#"
+                    href={project.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-primary hover:text-white transition-colors group/link"
                   >
                     view_details

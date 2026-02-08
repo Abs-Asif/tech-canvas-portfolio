@@ -22,7 +22,6 @@ export const Footer = () => {
 
           <div className="flex flex-col items-center md:items-end gap-2">
             <div className="flex gap-6 text-xs font-mono text-muted-foreground">
-              <a href="#about" className="hover:text-primary transition-colors">about</a>
               <a href="#projects" className="hover:text-primary transition-colors">projects</a>
               <a href="#contact" className="hover:text-primary transition-colors">contact</a>
             </div>
@@ -32,11 +31,6 @@ export const Footer = () => {
           </div>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-border/30 text-center">
-          <p className="text-[10px] font-mono text-muted-foreground/50 italic leading-relaxed">
-            "Technology is best when it brings people together and improves lives."
-          </p>
-        </div>
       </div>
     </footer>
   );

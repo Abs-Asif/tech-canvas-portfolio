@@ -38,24 +38,15 @@ export const HeroSection = () => {
                 <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
               </a>
               <a
-                href="#contact"
+                href="https://wa.me/8801538310838"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-8 py-4 rounded-lg text-sm font-mono font-bold border border-border bg-background/50 backdrop-blur-sm text-foreground transition-all duration-300 hover:bg-secondary active:scale-[0.98]"
               >
                 contact_me
               </a>
             </div>
 
-            <div className="flex flex-wrap justify-center lg:justify-start gap-x-8 gap-y-4 text-xs font-mono text-muted-foreground animate-fade-in-up opacity-0" style={{ animationDelay: "500ms", animationFillMode: "forwards" }}>
-              <a href="mailto:abdullah.bari.2028@gmail.com" className="flex items-center gap-2 hover:text-primary transition-colors">
-                <span className="text-primary">01</span> email
-              </a>
-              <a href="https://wa.me/8801538310838" className="flex items-center gap-2 hover:text-primary transition-colors">
-                <span className="text-primary">02</span> whatsapp
-              </a>
-              <span className="flex items-center gap-2">
-                <span className="text-primary">03</span> dhaka_bd
-              </span>
-            </div>
           </div>
 
           {/* Profile Photo Area */}
@@ -85,7 +76,7 @@ export const HeroSection = () => {
                   <div className="h-1.5 w-12 bg-primary/30 rounded-full" />
                   <div className="h-1.5 w-8 bg-accent/30 rounded-full" />
                 </div>
-                <div className="text-[10px] font-mono text-muted-foreground">LVL. 2024</div>
+                <div className="text-[10px] font-mono text-muted-foreground">LVL. 2003</div>
               </div>
             </div>
           </div>
