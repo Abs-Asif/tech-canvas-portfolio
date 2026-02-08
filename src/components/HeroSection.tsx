@@ -1,85 +1,104 @@
-import { Mail, Phone, MapPin, MessageCircle } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import profilePhoto from "@/assets/profile-photo.png";
 
 export const HeroSection = () => {
   return (
-    <section className="min-h-screen flex items-center pt-20 pb-12">
+    <section className="min-h-screen flex items-center pt-24 pb-12 relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute top-1/4 -right-20 w-96 h-96 bg-primary/10 rounded-full blur-[120px] -z-10" />
+      <div className="absolute bottom-1/4 -left-20 w-96 h-96 bg-accent/10 rounded-full blur-[120px] -z-10" />
+
       <div className="container">
-        <div className="flex flex-col-reverse lg:flex-row items-center gap-12 lg:gap-16">
+        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
           {/* Content */}
-          <div className="flex-1 text-center lg:text-left">
-            <p className="text-primary font-medium mb-3 animate-fade-in-up opacity-0" style={{ animationDelay: "100ms", animationFillMode: "forwards" }}>
-              Hello, I'm
-            </p>
+          <div className="flex-1 text-center lg:text-left order-2 lg:order-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary border border-border text-primary text-xs font-mono mb-6 animate-fade-in-up opacity-0" style={{ animationDelay: "100ms", animationFillMode: "forwards" }}>
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+              </span>
+              Available for new projects
+            </div>
             
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 animate-fade-in-up opacity-0" style={{ animationDelay: "200ms", animationFillMode: "forwards" }}>
-              Md. Abdullah Bari
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-foreground mb-6 tracking-tight animate-fade-in-up opacity-0 leading-[1.1]" style={{ animationDelay: "200ms", animationFillMode: "forwards" }}>
+              Creating <span className="gradient-text">Digital</span> <br />
+              <span className="font-mono italic font-light">&lt;Experience /&gt;</span>
             </h1>
             
-            <p className="text-base md:text-lg text-muted-foreground mb-8 leading-relaxed max-w-xl mx-auto lg:mx-0 animate-fade-in-up opacity-0" style={{ animationDelay: "300ms", animationFillMode: "forwards" }}>
-              Aspiring software developer and medical student with a passion for creating impactful digital solutions. Building bridges between technology and healthcare.
+            <p className="text-base md:text-lg text-muted-foreground mb-10 leading-relaxed max-w-xl mx-auto lg:mx-0 animate-fade-in-up opacity-0" style={{ animationDelay: "300ms", animationFillMode: "forwards" }}>
+              I'm <span className="text-foreground font-semibold">Md. Abdullah Bari</span>, an aspiring software developer and medical student. I specialize in building bridges between technology and healthcare through code.
             </p>
 
-            <div className="flex flex-wrap justify-center lg:justify-start gap-3 mb-8 animate-fade-in-up opacity-0" style={{ animationDelay: "400ms", animationFillMode: "forwards" }}>
-              <a
-                href="#contact"
-                className="inline-flex items-center px-6 py-3 rounded-full text-sm font-medium bg-primary text-primary-foreground transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
-              >
-                Contact Me
-              </a>
+            <div className="flex flex-wrap justify-center lg:justify-start gap-4 mb-10 animate-fade-in-up opacity-0" style={{ animationDelay: "400ms", animationFillMode: "forwards" }}>
               <a
                 href="#projects"
-                className="inline-flex items-center px-6 py-3 rounded-full text-sm font-medium bg-secondary text-secondary-foreground transition-all duration-200 hover:bg-accent active:scale-[0.98]"
+                className="group inline-flex items-center gap-2 px-8 py-4 rounded-lg text-sm font-mono font-bold bg-primary text-primary-foreground transition-all duration-300 hover:shadow-[0_0_20px_rgba(34,197,94,0.4)] active:scale-[0.98]"
               >
-                View Projects
+                view_work()
+                <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
+              </a>
+              <a
+                href="#contact"
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-lg text-sm font-mono font-bold border border-border bg-background/50 backdrop-blur-sm text-foreground transition-all duration-300 hover:bg-secondary active:scale-[0.98]"
+              >
+                contact_me
               </a>
             </div>
 
-            <div className="flex flex-wrap justify-center lg:justify-start gap-x-6 gap-y-3 text-sm text-muted-foreground animate-fade-in-up opacity-0" style={{ animationDelay: "500ms", animationFillMode: "forwards" }}>
-              <a
-                href="mailto:abdullah.bari.2028@gmail.com"
-                className="flex items-center gap-2 transition-colors hover:text-primary"
-              >
-                <Mail size={16} />
-                <span className="hidden sm:inline">abdullah.bari.2028@gmail.com</span>
-                <span className="sm:hidden">Email</span>
+            <div className="flex flex-wrap justify-center lg:justify-start gap-x-8 gap-y-4 text-xs font-mono text-muted-foreground animate-fade-in-up opacity-0" style={{ animationDelay: "500ms", animationFillMode: "forwards" }}>
+              <a href="mailto:abdullah.bari.2028@gmail.com" className="flex items-center gap-2 hover:text-primary transition-colors">
+                <span className="text-primary">01</span> email
               </a>
-              <a
-                href="https://wa.me/8801538310838"
-                className="flex items-center gap-2 transition-colors hover:text-primary"
-              >
-                <MessageCircle size={16} />
-                WhatsApp
+              <a href="https://wa.me/8801538310838" className="flex items-center gap-2 hover:text-primary transition-colors">
+                <span className="text-primary">02</span> whatsapp
               </a>
               <span className="flex items-center gap-2">
-                <MapPin size={16} />
-                Dhaka, Bangladesh
+                <span className="text-primary">03</span> dhaka_bd
               </span>
             </div>
           </div>
 
-          {/* Profile Photo */}
-          <div className="relative animate-fade-in-up opacity-0" style={{ animationDelay: "200ms", animationFillMode: "forwards" }}>
-            <div className="relative w-56 h-56 sm:w-64 sm:h-64 md:w-72 md:h-72 lg:w-80 lg:h-80">
-              {/* Decorative ring */}
-              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/20 to-accent/30 animate-float" />
-              
-              {/* Photo container */}
-              <div className="absolute inset-3 rounded-full overflow-hidden border-4 border-background shadow-lg">
+          {/* Profile Photo Area */}
+          <div className="flex-1 order-1 lg:order-2 animate-fade-in-up opacity-0" style={{ animationDelay: "300ms", animationFillMode: "forwards" }}>
+            <div className="terminal-window max-w-md mx-auto relative group">
+              <div className="terminal-header">
+                <div className="terminal-dot bg-destructive/50" />
+                <div className="terminal-dot bg-yellow-500/50" />
+                <div className="terminal-dot bg-primary/50" />
+                <div className="ml-2 text-[10px] font-mono text-muted-foreground uppercase tracking-widest">profile.exe</div>
+              </div>
+              <div className="relative aspect-square overflow-hidden bg-surface-1">
                 <img
                   src={profilePhoto}
                   alt="Md. Abdullah Bari"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
+
+                {/* Overlay Grid */}
+                <div className="absolute inset-0 bg-primary/5 pointer-events-none" style={{ backgroundImage: 'linear-gradient(rgba(34, 197, 94, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(34, 197, 94, 0.1) 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+
+                {/* Scanline effect */}
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent h-20 w-full animate-[scan_4s_linear_infinite] pointer-events-none" />
               </div>
-              
-              {/* Decorative dots */}
-              <div className="absolute -bottom-2 -right-2 w-6 h-6 rounded-full bg-primary opacity-60" />
-              <div className="absolute -top-4 right-8 w-4 h-4 rounded-full bg-accent opacity-80" />
+              <div className="p-4 bg-secondary/30 border-t border-border flex justify-between items-center">
+                <div className="flex gap-4">
+                  <div className="h-1.5 w-12 bg-primary/30 rounded-full" />
+                  <div className="h-1.5 w-8 bg-accent/30 rounded-full" />
+                </div>
+                <div className="text-[10px] font-mono text-muted-foreground">LVL. 2024</div>
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Custom Scanline Keyframes (added to global css usually, but can be inline here for simplicity if needed, but I'll add to index.css if it doesn't exist) */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes scan {
+          from { transform: translateY(-100%); }
+          to { transform: translateY(400%); }
+        }
+      `}} />
     </section>
   );
 };
