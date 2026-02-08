@@ -18,6 +18,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -58,21 +59,11 @@ export default {
           2: "hsl(var(--surface-2))",
           3: "hsl(var(--surface-3))",
         },
-        "on-surface": {
-          DEFAULT: "hsl(var(--on-surface))",
-          variant: "hsl(var(--on-surface-variant))",
-        },
       },
       borderRadius: {
-        "4xl": "2rem",
-        "5xl": "2.5rem",
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
-      },
-      boxShadow: {
-        'surface': 'var(--shadow-md)',
-        'surface-hover': 'var(--shadow-lg)',
       },
       keyframes: {
         "accordion-down": {
