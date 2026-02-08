@@ -13,7 +13,7 @@ const projects = [
     url: "https://Gramrokti.vercel.app",
     description: "A mobile application designed to connect blood donors with recipients in rural areas of Bangladesh.",
     isBangla: true,
-    tech: ["Android", "React", "Vite", "Capacitor", "Supabase", "Firebase"]
+    tech: ["Android", "React", "Vite", "Capacitor", "Supabase", "Firebase", "Minimalist", "Offline", "Non profit"]
   },
   {
     title: "Greenhutbd Inventory Management",
@@ -24,13 +24,13 @@ const projects = [
     url: "https://Inventory.greenhutbd.com",
     description: "A comprehensive web-based inventory management system for streamlining business operations and stock tracking.",
     isBangla: false,
-    tech: ["webapp", "React", "Vite", "Supabase", "Woocommerce"]
+    tech: ["webapp", "React", "Vite", "Supabase", "Woocommerce", "Comprehensive", "Business", "Inventory"]
   },
 ];
 
 export const ProjectsSection = () => {
   return (
-    <Section id="projects" title="Latest Work" index="02">
+    <Section id="projects" title="Latest Work" index="01">
       <div className="grid md:grid-cols-2 gap-8">
         {projects.map((project, index) => (
           <div
