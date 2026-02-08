@@ -3,7 +3,6 @@ import { cn } from "@/lib/utils";
 import { Menu, X, Terminal } from "lucide-react";
 
 const navItems = [
-  { label: "About", href: "#about" },
   { label: "Skills", href: "#skills" },
   { label: "Projects", href: "#projects" },
   { label: "Contact", href: "#contact" },

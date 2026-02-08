@@ -6,18 +6,22 @@ import greenhutLogo from "@/assets/greenhut-logo.png";
 const projects = [
   {
     title: "গ্রামরক্তি",
+    filename: "GramRokti.js",
     type: "Android Application",
     icon: Smartphone,
     logo: gramroktiLogo,
+    url: "https://Gramrokti.vercel.app",
     description: "A mobile application designed to connect blood donors with recipients in rural areas of Bangladesh.",
     isBangla: true,
     tech: ["Android", "React", "Vite", "Capacitor", "Supabase", "Firebase"]
   },
   {
     title: "Greenhutbd Inventory Management",
+    filename: "greenhutbd_inventory_man...",
     type: "Web Application",
     icon: Globe,
     logo: greenhutLogo,
+    url: "https://Inventory.greenhutbd.com",
     description: "A comprehensive web-based inventory management system for streamlining business operations and stock tracking.",
     isBangla: false,
     tech: ["webapp", "React", "Vite", "Supabase", "Woocommerce"]
@@ -26,7 +30,7 @@ const projects = [
 
 export const ProjectsSection = () => {
   return (
-    <Section id="projects" title="Latest Work" index="03">
+    <Section id="projects" title="Latest Work" index="02">
       <div className="grid md:grid-cols-2 gap-8">
         {projects.map((project, index) => (
           <div
@@ -39,7 +43,7 @@ export const ProjectsSection = () => {
               <div className="flex items-center gap-2">
                 <Code2 size={12} className="text-primary" />
                 <span className="text-[10px] font-mono text-muted-foreground truncate max-w-[150px]">
-                  {project.title.toLowerCase().replace(/\s+/g, '_')}.js
+                  {project.filename}
                 </span>
               </div>
               <div className="flex gap-1">
@@ -85,7 +89,9 @@ export const ProjectsSection = () => {
 
                 <div className="pt-4 border-t border-border/50 flex justify-end items-center">
                   <a
-                    href="#"
+                    href={project.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-primary hover:text-white transition-colors group/link"
                   >
                     view_details

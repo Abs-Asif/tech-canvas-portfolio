@@ -1,85 +1,163 @@
 import { Section } from "./Section";
-import { Languages } from "lucide-react";
+import { Languages, Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+import useEmblaCarousel from 'embla-carousel-react';
+import { useCallback } from 'react';
 
-const languages = [
-  { name: "Bangla", level: "Native", proficiency: ["Speaking", "Listening", "Writing", "Reading"] },
-  { name: "English", level: "Fluent", proficiency: ["Speaking", "Listening", "Writing", "Reading"] },
-  { name: "Hindi/Urdu", level: "Conversational", proficiency: ["Listening", "Speaking"] },
+const languageData = [
+  {
+    name: "Bangla",
+    level: "Native",
+    steps: [
+      { title: "Listening", status: "complete" as const },
+      { title: "Speaking", status: "complete" as const },
+      { title: "Reading", status: "complete" as const },
+      { title: "Writing", status: "complete" as const },
+    ]
+  },
+  {
+    name: "English",
+    level: "Fluent",
+    steps: [
+      { title: "Listening", status: "complete" as const },
+      { title: "Speaking", status: "complete" as const },
+      { title: "Reading", status: "complete" as const },
+      { title: "Writing", status: "complete" as const },
+    ]
+  },
+  {
+    name: "Hindi/Urdu",
+    level: "Conversational",
+    steps: [
+      { title: "Listening", status: "complete" as const },
+      { title: "Speaking", status: "complete" as const },
+      { title: "Reading", status: "upcoming" as const },
+      { title: "Writing", status: "upcoming" as const },
+    ]
+  }
 ];
 
-export const SkillsSection = () => {
+const Step = ({ title, status, index, isLast }: { title: string, status: 'complete' | 'upcoming', index: number, isLast: boolean }) => {
   return (
-    <Section id="skills" title="Skills" index="02">
-      <div className="max-w-4xl mx-auto">
-        {/* Languages */}
+    <div className="flex gap-4 min-h-[70px]">
+      <div className="flex flex-col items-center">
+        <div className={cn(
+          "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-500",
+          status === 'complete'
+            ? "bg-primary/20 border-primary text-primary shadow-[0_0_15px_rgba(34,197,94,0.2)]"
+            : "border-border bg-background/50 text-muted-foreground"
+        )}>
+          {status === 'complete' ? (
+            <Check size={18} strokeWidth={3} />
+          ) : (
+            <span className="text-xs font-bold">{index + 1}</span>
+          )}
+        </div>
+        {!isLast && (
+          <div className={cn(
+            "w-0.5 flex-1 my-1 transition-colors duration-1000",
+            status === 'complete' ? "bg-primary/50" : "bg-border"
+          )} />
+        )}
+      </div>
+      <div className="pt-1 pb-4">
+        <p className={cn(
+          "text-[10px] font-mono uppercase tracking-widest mb-1",
+          status === 'upcoming' ? "text-muted-foreground/50" : "text-primary/60"
+        )}>
+          STEP {index + 1}
+        </p>
+        <h5 className={cn(
+          "font-bold text-base tracking-tight",
+          status === 'upcoming' ? "text-muted-foreground" : "text-foreground"
+        )}>
+          {title}
+        </h5>
+      </div>
+    </div>
+  );
+};
+
+export const SkillsSection = () => {
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    align: 'start',
+    containScroll: 'trimSnaps',
+    dragFree: true
+  });
+
+  const scrollPrev = useCallback(() => {
+    if (emblaApi) emblaApi.scrollPrev();
+  }, [emblaApi]);
+
+  const scrollNext = useCallback(() => {
+    if (emblaApi) emblaApi.scrollNext();
+  }, [emblaApi]);
+
+  return (
+    <Section id="skills" title="Skills" index="01">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6">
+        {/* Languages Carousel */}
         <div 
           className="animate-fade-in-up opacity-0"
           style={{ animationDelay: "100ms", animationFillMode: "forwards" }}
         >
-          <div className="flex items-center gap-3 mb-8">
-            <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
-              <Languages size={20} className="text-primary" />
+          <div className="flex items-center justify-between mb-10">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+                <Languages size={20} className="text-primary" />
+              </div>
+              <h3 className="text-lg font-mono font-bold uppercase tracking-widest text-foreground">languages.py</h3>
             </div>
-            <h3 className="text-lg font-mono font-bold uppercase tracking-widest text-foreground">languages.py</h3>
+
+            <div className="flex gap-2">
+              <button
+                onClick={scrollPrev}
+                className="p-2 rounded-full border border-border hover:border-primary/50 hover:bg-primary/5 transition-all text-muted-foreground hover:text-primary"
+                aria-label="Previous slide"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <button
+                onClick={scrollNext}
+                className="p-2 rounded-full border border-border hover:border-primary/50 hover:bg-primary/5 transition-all text-muted-foreground hover:text-primary"
+                aria-label="Next slide"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
           </div>
           
-          <div className="space-y-16">
-            {languages.map((lang, langIdx) => (
-              <div
-                key={lang.name}
-                className="animate-fade-in-up opacity-0"
-                style={{ animationDelay: `${(langIdx + 1) * 200}ms`, animationFillMode: "forwards" }}
-              >
-                <div className="flex items-center gap-4 mb-10">
-                  <h4 className="text-3xl font-bold text-foreground tracking-tight">{lang.name}</h4>
-                  <div className="h-px flex-1 bg-gradient-to-r from-primary/30 to-transparent" />
-                  <span className="text-[10px] font-mono bg-secondary px-3 py-1 rounded-full border border-border text-primary uppercase tracking-widest">{lang.level}</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {lang.proficiency.map((skill, skillIdx) => (
-                    <div key={skill} className="relative group">
-                      <div className="p-6 rounded-2xl bg-secondary/20 border border-border/50 hover:border-primary/30 transition-all duration-500 hover:-translate-y-1 overflow-hidden">
-                        {/* Background loading effect */}
-                        <div
-                          className="absolute bottom-0 left-0 right-0 bg-primary/5 animate-[fill-up_2s_ease-out_forwards]"
-                          style={{ animationDelay: `${(langIdx * 4 + skillIdx) * 150}ms` }}
-                        />
-
-                        <div className="relative z-10">
-                          <div className="flex items-center justify-between mb-4">
-                            <span className="text-[10px] font-mono text-primary/60">0{skillIdx + 1}</span>
-                            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                          </div>
-                          <h5 className="font-mono font-bold text-foreground group-hover:text-primary transition-colors">{skill}</h5>
-                          <div className="mt-4 h-1 w-full bg-background rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-primary animate-[fill-width_1.5s_ease-out_forwards]"
-                              style={{
-                                animationDelay: `${(langIdx * 4 + skillIdx) * 150 + 500}ms`,
-                                width: '0%'
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </div>
+          <div className="overflow-hidden" ref={emblaRef}>
+            <div className="flex gap-6">
+              {languageData.map((lang, langIdx) => (
+                <div
+                  key={lang.name}
+                  className="flex-[0_0_100%] sm:flex-[0_0_calc(50%-12px)] lg:flex-[0_0_calc(33.333%-16px)] min-w-0"
+                >
+                  <div className="h-full p-8 rounded-2xl bg-secondary/10 border border-border/50 hover:border-primary/20 transition-all duration-500 group">
+                    <div className="flex items-center justify-between mb-8">
+                      <h4 className="text-2xl font-bold text-foreground group-hover:text-primary transition-colors">{lang.name}</h4>
+                      <span className="text-[10px] font-mono bg-primary/10 px-2 py-1 rounded border border-primary/20 text-primary uppercase tracking-tighter">
+                        {lang.level}
+                      </span>
                     </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
 
-          <style dangerouslySetInnerHTML={{ __html: `
-            @keyframes fill-up {
-              from { height: 0; }
-              to { height: 100%; }
-            }
-            @keyframes fill-width {
-              from { width: 0; }
-              to { width: 100%; }
-            }
-          `}} />
+                    <div className="space-y-0">
+                      {lang.steps.map((step, stepIdx) => (
+                        <Step
+                          key={step.title}
+                          title={step.title}
+                          status={step.status}
+                          index={stepIdx}
+                          isLast={stepIdx === lang.steps.length - 1}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </Section>

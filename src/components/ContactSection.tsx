@@ -26,7 +26,7 @@ const contactInfo = [
   {
     icon: MapPin,
     label: "Address",
-    value: "808 East Shewrapara, Mirpur, Dhaka-1216",
+    value: "Shewrapara, Mirpur 10, Dhaka",
     href: null,
     color: "text-red-400"
   },
@@ -46,7 +46,7 @@ const FacebookIcon = ({ size = 20 }: { size?: number }) => (
 
 export const ContactSection = () => {
   return (
-    <Section id="contact" title="Get in Touch" index="04">
+    <Section id="contact" title="Get in Touch" index="03">
       <div className="max-w-5xl mx-auto">
         <div className="grid lg:grid-cols-2 gap-12 items-start">
           {/* Contact Details */}
@@ -110,7 +110,7 @@ export const ContactSection = () => {
                   <div className="min-w-0">
                     <p className="text-[10px] font-mono text-muted-foreground uppercase mb-1">Facebook</p>
                     <p className="text-sm font-mono text-foreground group-hover:text-primary transition-colors">
-                      connect_on_social()
+                      My Facebook Profile
                     </p>
                   </div>
                 </a>
