@@ -76,7 +76,7 @@ export const HeroSection = () => {
                   <div className="h-1.5 w-12 bg-primary/30 rounded-full" />
                   <div className="h-1.5 w-8 bg-accent/30 rounded-full" />
                 </div>
-                <div className="text-[10px] font-mono text-muted-foreground">LVL. 2024</div>
+                <div className="text-[10px] font-mono text-muted-foreground">LVL. 2003</div>
               </div>
             </div>
           </div>

@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Menu, X, Terminal } from "lucide-react";
+import { Terminal } from "lucide-react";
 
 const navItems = [
   { label: "Projects", href: "#projects" },
@@ -9,7 +9,6 @@ const navItems = [
 
 export const Header = () => {
   const [scrolled, setScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -18,8 +17,6 @@ export const Header = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  const closeMobileMenu = () => setMobileMenuOpen(false);
 
   return (
     <header
@@ -60,52 +57,11 @@ export const Header = () => {
 
         <a
           href="#contact"
-          className="hidden md:inline-flex items-center px-4 py-2 rounded-md text-xs font-mono font-bold bg-primary text-primary-foreground transition-all duration-200 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] active:scale-[0.98]"
+          className="inline-flex items-center px-4 py-2 rounded-md text-xs font-mono font-bold bg-primary text-primary-foreground transition-all duration-200 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] active:scale-[0.98]"
         >
           _connect()
         </a>
-
-        {/* Mobile menu button */}
-        <button 
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden p-2 rounded-md hover:bg-secondary transition-colors"
-          aria-label="Toggle menu"
-        >
-          {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
       </nav>
-
-      {/* Mobile Navigation */}
-      <div
-        className={cn(
-          "md:hidden absolute top-full left-0 right-0 bg-background/95 backdrop-blur-xl border-b border-border transition-all duration-300 overflow-hidden",
-          mobileMenuOpen ? "max-h-80 opacity-100" : "max-h-0 opacity-0"
-        )}
-      >
-        <ul className="container py-6 space-y-2">
-          {navItems.map((item) => (
-            <li key={item.href}>
-              <a
-                href={item.href}
-                onClick={closeMobileMenu}
-                className="block px-4 py-3 rounded-lg text-sm font-mono font-medium text-muted-foreground transition-all duration-200 hover:text-primary hover:bg-primary/5"
-              >
-                <span className="text-primary mr-2">➜</span>
-                {item.label}
-              </a>
-            </li>
-          ))}
-          <li className="pt-4 px-4">
-            <a
-              href="#contact"
-              onClick={closeMobileMenu}
-              className="block text-center py-3 rounded-lg text-sm font-mono font-bold bg-primary text-primary-foreground"
-            >
-              _connect()
-            </a>
-          </li>
-        </ul>
-      </div>
     </header>
   );
 };

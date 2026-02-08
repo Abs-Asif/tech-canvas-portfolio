@@ -30,7 +30,14 @@ const projects = [
 
 export const ProjectsSection = () => {
   return (
-    <Section id="projects" title="Latest Work" index="01">
+    <Section id="projects">
+      <div className="text-center mb-16 animate-fade-in-up opacity-0" style={{ animationFillMode: 'forwards' }}>
+        <h3 className="text-4xl font-bold text-foreground mb-4">My recent Projects</h3>
+        <p className="text-muted-foreground max-w-lg mx-auto">
+          A showcase of my recent work in mobile development and web systems.
+        </p>
+      </div>
+
       <div className="grid md:grid-cols-2 gap-8">
         {projects.map((project, index) => (
           <div
