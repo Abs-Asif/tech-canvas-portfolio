@@ -24,6 +24,61 @@ const fonts: FontData[] = [
       { name: "Regular", weight: "400", file: "/fonts/EkusheyLalsalu-Regular.ttf", fontClass: "font-ekushey-regular" },
       { name: "Bold", weight: "700", file: "/fonts/EkusheyLalsalu-Bold.ttf", fontClass: "font-ekushey-bold" }
     ]
+  },
+  {
+    name: "Adorsho Lipi",
+    id: "adorsho-lipi",
+    styles: [
+      { name: "Regular", weight: "400", file: "/fonts/AdorshoLipi.ttf", fontClass: "font-adorsho-regular" }
+    ]
+  },
+  {
+    name: "Bornomala",
+    id: "bornomala",
+    styles: [
+      { name: "Regular", weight: "400", file: "/fonts/Bornomala-Regular.ttf", fontClass: "font-bornomala-regular" },
+      { name: "Bold", weight: "700", file: "/fonts/Bornomala-Bold.ttf", fontClass: "font-bornomala-bold" }
+    ]
+  },
+  {
+    name: "July",
+    id: "july",
+    styles: [
+      { name: "Regular", weight: "400", file: "/fonts/July-Regular.ttf", fontClass: "font-july-regular" },
+      { name: "Italic", weight: "400", file: "/fonts/July-Italic.ttf", fontClass: "font-july-italic" },
+      { name: "Bold", weight: "700", file: "/fonts/July-Bold.ttf", fontClass: "font-july-bold" },
+      { name: "Bold Italic", weight: "700", file: "/fonts/July-Bold-Italic.ttf", fontClass: "font-july-bold-italic" }
+    ]
+  },
+  {
+    name: "Purno",
+    id: "purno",
+    styles: [
+      { name: "Regular", weight: "400", file: "/fonts/Purno.woff", fontClass: "font-purno-regular" }
+    ]
+  },
+  {
+    name: "Solaiman Lipi",
+    id: "solaiman-lipi",
+    styles: [
+      { name: "Thin", weight: "100", file: "/fonts/SolaimanLipi-Thin.ttf", fontClass: "font-solaiman-thin" },
+      { name: "Regular", weight: "400", file: "/fonts/SolaimanLipi-Regular.ttf", fontClass: "font-solaiman-regular" },
+      { name: "Bold", weight: "700", file: "/fonts/SolaimanLipi-Bold.ttf", fontClass: "font-solaiman-bold" }
+    ]
+  },
+  {
+    name: "Kalpurush",
+    id: "kalpurush",
+    styles: [
+      { name: "Regular", weight: "400", file: "/fonts/kalpurush.ttf", fontClass: "font-kalpurush-regular" }
+    ]
+  },
+  {
+    name: "Sagar",
+    id: "sagar",
+    styles: [
+      { name: "Regular", weight: "400", file: "/fonts/sagar.ttf", fontClass: "font-sagar-regular" }
+    ]
   }
 ];
 
