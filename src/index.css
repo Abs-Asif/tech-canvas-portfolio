@@ -13,6 +13,22 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'Ekushey Lal Salu Normal';
+  src: url('/fonts/EkusheyLalsalu-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Ekushey Lal Salu Normal';
+  src: url('/fonts/EkusheyLalsalu-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
   :root {
     --background: 222 47% 2%;
@@ -90,6 +106,16 @@
   /* Apply Kalpurush to Bangla text */
   .font-bangla {
     font-family: 'Kalpurush', 'Inter', system-ui, sans-serif;
+  }
+
+  .font-ekushey-regular {
+    font-family: 'Ekushey Lal Salu Normal', sans-serif;
+    font-weight: 400;
+  }
+
+  .font-ekushey-bold {
+    font-family: 'Ekushey Lal Salu Normal', sans-serif;
+    font-weight: 700;
   }
 }
 
