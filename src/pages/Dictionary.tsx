@@ -18,6 +18,8 @@ interface Definition {
 interface Meaning {
   partOfSpeech: string;
   definitions: Definition[];
+  synonyms?: string[];
+  antonyms?: string[];
 }
 
 interface DictionaryEntry {
@@ -156,7 +158,7 @@ const Dictionary = () => {
           </div>
           <button
             onClick={handleSearch}
-            className="h-14 w-14 inline-flex items-center justify-center rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all active:scale-95 shrink-0 shadow-[0_0_15px_rgba(34,197,94,0.2)]"
+            className="h-14 w-14 inline-flex items-center justify-center rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all active:scale-95 shrink-0 shadow-none"
             title="Search"
           >
             <Search size={20} />
@@ -194,7 +196,7 @@ const Dictionary = () => {
           )}
 
           {!isLoading && results && results.map((entry, index) => (
-            <div key={index} className="terminal-window animate-fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
+            <div key={index} className="terminal-window shadow-none backdrop-blur-none bg-card animate-fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
               <div className="terminal-header flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-mono text-primary">WORD::{entry.word.toUpperCase()}</span>
@@ -261,9 +263,16 @@ const Dictionary = () => {
                                     <div className="flex gap-2 items-center flex-wrap">
                                       <span className="text-[10px] font-mono text-muted-foreground uppercase">Synonyms:</span>
                                       {def.synonyms.slice(0, 5).map((s, si) => (
-                                        <span key={si} className="text-[10px] font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10 hover:bg-primary/10 transition-colors cursor-default">
+                                        <button
+                                          key={si}
+                                          onClick={() => {
+                                            setSearchTerm(s);
+                                            fetchDefinition(s);
+                                          }}
+                                          className="text-[10px] font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10 hover:bg-primary/20 transition-all active:scale-95"
+                                        >
                                           {s}
-                                        </span>
+                                        </button>
                                       ))}
                                     </div>
                                   )}
@@ -271,9 +280,16 @@ const Dictionary = () => {
                                     <div className="flex gap-2 items-center flex-wrap">
                                       <span className="text-[10px] font-mono text-muted-foreground uppercase">Antonyms:</span>
                                       {def.antonyms.slice(0, 5).map((a, ai) => (
-                                        <span key={ai} className="text-[10px] font-mono text-destructive bg-destructive/5 px-1.5 py-0.5 rounded border border-destructive/10 hover:bg-destructive/10 transition-colors cursor-default">
+                                        <button
+                                          key={ai}
+                                          onClick={() => {
+                                            setSearchTerm(a);
+                                            fetchDefinition(a);
+                                          }}
+                                          className="text-[10px] font-mono text-destructive bg-destructive/5 px-1.5 py-0.5 rounded border border-destructive/10 hover:bg-destructive/20 transition-all active:scale-95"
+                                        >
                                           {a}
-                                        </span>
+                                        </button>
                                       ))}
                                     </div>
                                   )}
@@ -283,6 +299,43 @@ const Dictionary = () => {
                           </li>
                         ))}
                       </ul>
+
+                      {/* Meaning level synonyms/antonyms */}
+                      {(meaning.synonyms && meaning.synonyms.length > 0) && (
+                        <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-primary/10">
+                          <span className="text-[10px] font-mono font-bold text-primary uppercase tracking-wider self-center">Synonyms:</span>
+                          {meaning.synonyms.map(syn => (
+                            <button
+                              key={syn}
+                              onClick={() => {
+                                setSearchTerm(syn);
+                                fetchDefinition(syn);
+                              }}
+                              className="text-[10px] font-mono bg-primary/10 hover:bg-primary/20 text-primary px-2 py-0.5 rounded transition-colors"
+                            >
+                              {syn}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {(meaning.antonyms && meaning.antonyms.length > 0) && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          <span className="text-[10px] font-mono font-bold text-destructive uppercase tracking-wider self-center">Antonyms:</span>
+                          {meaning.antonyms.map(ant => (
+                            <button
+                              key={ant}
+                              onClick={() => {
+                                setSearchTerm(ant);
+                                fetchDefinition(ant);
+                              }}
+                              className="text-[10px] font-mono bg-destructive/10 hover:bg-destructive/20 text-destructive px-2 py-0.5 rounded transition-colors"
+                            >
+                              {ant}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

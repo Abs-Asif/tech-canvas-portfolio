@@ -11,7 +11,7 @@ const projects = [
     icon: Globe,
     logo: dictionaryLogo,
     url: "/D",
-    description: "My very own Personal Dictionary. One of my projects, where i try to build mew things.",
+    description: "My very own personal English language dictionary. It user open source dictionary api to show results.",
     isBangla: false,
     tech: ["Webapp", "Open source", "Dictionary", "Vite", "React", "Vibe"]
   },
