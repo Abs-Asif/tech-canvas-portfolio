@@ -1,5 +1,5 @@
 import { Section } from "./Section";
-import { Globe, ExternalLink, Code2 } from "lucide-react";
+import { Globe, ExternalLink, Code2, Type } from "lucide-react";
 import dictionaryLogo from "@/assets/dictionary.png";
 import { Link } from "react-router-dom";
 
@@ -14,6 +14,16 @@ const projects = [
     description: "My very own personal English language dictionary. It user open source dictionary api to show results.",
     isBangla: false,
     tech: ["Webapp", "Open source", "Dictionary", "Vite", "React", "Vibe"]
+  },
+  {
+    title: "Bangla Font Simplified",
+    filename: "bangla_font.css",
+    type: "Web application",
+    icon: Type,
+    url: "/F",
+    description: "This is a project of mine, where I'm trying to create a Google fonts alternative, but for Bangla fonts specifically. Just use the CSS code to implement in your website. No need to manually download and upload font files anymore.",
+    isBangla: true,
+    tech: ["Fonts", "Open Source", "Vite", "React", "CSS"]
   },
 ];
 
@@ -51,12 +61,16 @@ export const SideProjectsSection = () => {
             <div className="p-6 flex-1 flex flex-col">
               <div className="flex items-start gap-5 mb-6">
                 {/* Project Logo */}
-                <div className="w-16 h-16 rounded-xl bg-surface-1 border border-border p-2.5 flex items-center justify-center overflow-hidden shrink-0 group-hover:border-primary/50 transition-colors shadow-inner">
-                  <img
-                    src={project.logo}
-                    alt={project.title}
-                    className="w-full h-full object-contain filter grayscale group-hover:grayscale-0 transition-all duration-500"
-                  />
+                <div className="w-16 h-16 rounded-xl bg-surface-1 border border-border p-2.5 flex items-center justify-center overflow-hidden shrink-0 group-hover:border-primary/50 transition-colors shadow-inner text-muted-foreground group-hover:text-primary">
+                  {"logo" in project ? (
+                    <img
+                      src={project.logo}
+                      alt={project.title}
+                      className="w-full h-full object-contain filter grayscale group-hover:grayscale-0 transition-all duration-500"
+                    />
+                  ) : (
+                    <project.icon size={32} />
+                  )}
                 </div>
 
                 <div className="flex-1 min-w-0 pt-1">
