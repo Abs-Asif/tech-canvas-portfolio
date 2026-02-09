@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Search, X, Type, Download, Code, Check, Copy, ExternalLink, Info, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline } from "lucide-react";
+import { ArrowLeft, Search, X, Type, Download, Code, Check, Copy, ExternalLink, Info, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, Palette, RotateCcw } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -27,7 +27,7 @@ const fonts: FontData[] = [
   }
 ];
 
-const GLYPHS = "অ আ ই ঈ উ ঊ ঋ এ ঐ ও ঔ ক খ গ ঘ ঙ চ ছ জ ঝ ঞ ট ঠ ড ঢ ণ ত থ দ ধ ন প ফ ব ভ ম য র ল শ ষ স হ ড় ঢ় য় ৎ ং ঃ ঁ ৰ ৱ া ি ী ু ূ ৃ ে ৈ ো ৌ ৗ ্‌ । ॥ ০ ১ ২ ৩ ৪ ৫ ৬ ৭ ৮ ৯ ৳ ক্ক ক্ট ক্ট্র ক্ত ক্ত্র ক্ন ক্ব ক্ম ক্র ক্ল ক্ষ ক্ষ্ণ ক্ষ্ম ক্ষ্র ক্স খ্র গু গ্গ গ্ধ গ্ন গ্ব গ্ম গ্র গ্রু গ্রূ গ্ল ঘ্ন ঘ্ব ঘ্র ঙ্ক ঙ্ক্র ঙ্খ ঙ্গ ঙ্ম চ্ঞ চ্র ছ্ব ছ্র জ্জ জ্জ্ব জ্ঝ জ্ঞ জ্ব জ্র ঞ্চ ঞ্ছ ঞ্জ ঞ্ঝ ট্ট ট্ব ট্ম ট্র ঠ্র ড্ড ড্র ঢ্র ণ্ট ণ্ঠ ণ্ড ণ্ড্র ণ্ঢ ণ্ণ ণ্ব ণ্ম ণ্র ত্ত ত্ত্ব ত্থ ত্ন ত্ব ত্ল ত্ম ত্র ত্রু ত্রূ থ্ব থ্র থ্রু থ্রূ থ্ল দ্দ দ্দ্ব দ্ধ দ্ধ্ব দ্ন দ্ব দ্ভ দ্ভ্র দ্ম দ্র দ্রু দ্রূ ধ্ন ধ্ব ধ্ম ন্জ ন্ট ন্ট্র ন্ঠ ন্ড ন্ড্র ন্ত ন্ত্ব ন্ত্র ন্থ ন্দ ন্দ্র ন্ধ ন্ধ্র ন্ন ন্ব ন্ম ন্র ন্স প্ট প্ত প্ত্র প্ন প্প প্র প্রু প্রূ প্ল প্স ফ্ট ফ্র ফ্ল ব্জ ব্দ ব্ধ ব্ব ব্র ব্রু ব্রূ ব্ল ভ্র ভ্রু ভ্রূ ভ্ল ম্ন ম্ফ ম্ব ম্ব্র ম্ভ ম্ভ্র ম্ম ম্র ম্ল য্র ল্ক ল্গ ল্ড ল্প ল্ফ ল্ব ল্ম ল্র ল্ল ল্স শু শ্চ শ্ছ শ্ন শ্ব শ্ম শ্র শ্রু শ্রূ শ্ল ষ্ক ষ্ক্র ষ্ট ষ্ট্র ষ্ঠ ষ্ফ ষ্ব ষ্ম ষ্র স্ক স্ক্র স্খ স্ট স্ট্র স্ত স্ত্র স্থ স্ন স্প্ল স্ফ স্ব স্ম স্রু স্রূ স্ল হু হৃ হ্ণ হ্ন হ্ম হ্ব হ্র হ্ল ড়্গ";
+const GLYPHS = "অ আ ই ঈ উ ঊ ঋ এ ঐ ও ঔ ক খ গ ঘ ঙ চ ছ জ ঝ ঞ ট ঠ ড ঢ ণ ত থ দ ধ ন প ফ ব ভ ম য র ল শ ষ স হ ড় ঢ় য় ৎ ং ঃ ঁ ৰ ৱ া ি ী ু ূ ৃ ে ৈ ো ৌ ৗ ্‌ । ॥ ০ ১ ২ ৩ ৪ ৫ ৬ ৭ ৮ ৯ ৳ ক্ক ক্ট ক্ট্র ক্ত ক্ত্র ক্ন ক্ব ক্ম ক্র ক্ল ক্ষ ক্ষ্ণ ক্ষ্ম ক্ষ্র ক্স খ্র গু গ্গ গ্ধ গ্ন গ্ব গ্ম গ্র গ্রু গ্রূ গ্ল ঘ্ন ঘ্ব ঘ্র ঙ্ক ঙ্ক্র ঙ্খ ঙ্গ ঙ্ম চ্ঞ চ্র ছ্ব ছ্র জ্জ জ্জ্ব জ্ঝ জ্ঞ জ্ব জ্র ঞ্চ ঞ্ছ ঞ্জ ঞ্ঝ ট্ট ট্ব ট্ম ট্র ঠ্র ড্ড ড্র ঢ্র ণ্ট ণ্ঠ ণ্ড ণ্ড্র ণ্ঢ ণ্ণ ণ্ব ণ্ম ণ্র ত্ত ত্ত্ব ত্থ ত্ন ত্ব ত্ল ত্ম ত্র ত্রু ত্রূ থ্ব থ্র থ্রু থ্রূ থ্ল দ্দ দ্দ্ব দ্ধ দ্ধ্ব দ্ন দ্ব দ্ভ দ্ভ্র দ্ম দ্র দ্রু দ্রূ ধ্ন ধ্ব ধ্ম ন্জ ন্ট ন্ট্র ন্ঠ ন্ড ন্ড্র ন্ত ন্ত্ব ন্ত্র ন্থ ন্দ ন্দ্র ন্ধ ন্ধ্র ন্ন ন্ব ন্ম ন্র ন্স প্ট প্ত প্ত্র প্ন প্প প্র প্রু প্রূ প্ল প্স ফ্ট ফ্র ফ্ল ব্জ ব্দ ব্ধ ব্ব ব্র ব্রু ব্রূ ব্ল ভ্র ভ্রু ভ্রূ ভ্ল ম্ন ম্ফ ম্ব ম্ব্র ম্ভ ম্ভ্র ম্ম ম্র ম্ল য্র ল্ক ল্গ ল্ড ল্প ল্ফ ল্ব ল্ম ল্র ল্ল ল্স শু শ্চ শ্ছ শ্ন শ্ব শ্ম শ্র শ্রু শ্রূ শ্ল ষ্ক ষ্ক্র ষ্ট ষ্ট্র ষ্ঠ ষ্ফ ষ্ব ষ্ম ষ্র স্ক স্ক্র স্খ স্ট স্ট্র স্ত স্ত্র স্থ স্ন স্প্ল স্ফ স্ব স্ম স্রু স্রূ স্ল হু হৃ হ্ণ হ্ন হ্ম হ্ব হ্র হ্ল ড়্গ A B C D E F G H I J K L M N O P Q R S T U V W X Y Z a b c d e f g h i j k l m n o p q r s t u v w x y z 0 1 2 3 4 5 6 7 8 9";
 
 const FontSimplified = () => {
   const navigate = useNavigate();
@@ -39,10 +39,24 @@ const FontSimplified = () => {
   const [showDownloadPopup, setShowDownloadPopup] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [fontSize, setFontSize] = useState(40);
+  const [letterSpacing, setLetterSpacing] = useState(0);
+  const [lineHeight, setLineHeight] = useState(1.2);
+  const [textColor, setTextColor] = useState("#ffffff");
   const [textAlign, setTextAlign] = useState<"left" | "center" | "right">("left");
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
   const [isUnderline, setIsUnderline] = useState(false);
+
+  const resetControls = () => {
+    setFontSize(40);
+    setLetterSpacing(0);
+    setLineHeight(1.2);
+    setTextColor("#ffffff");
+    setTextAlign("left");
+    setIsBold(false);
+    setIsItalic(false);
+    setIsUnderline(false);
+  };
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -124,20 +138,15 @@ const FontSimplified = () => {
                   onClick={() => navigate(`#${font.id}`)}
                   className="terminal-window group cursor-pointer hover:border-primary/50 transition-all active:scale-[0.98]"
                 >
-                  <div className="terminal-header flex items-center justify-between">
-                    <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
-                      FONT::{font.id}
+                  <div className="terminal-header flex items-center justify-between gap-2 overflow-hidden">
+                    <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider truncate">
+                      FONT::<span className="text-primary">{font.name}</span> <span className="opacity-50 ml-1 whitespace-nowrap">({font.styles.length} STYLES)</span>
                     </span>
-                    <ExternalLink size={12} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                    <ExternalLink size={12} className="text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
                   </div>
-                  <div className="p-6 space-y-4">
-                    <div className="flex justify-end items-start">
-                      <span className="text-[10px] font-mono bg-surface-2 px-1.5 py-0.5 rounded border border-border">
-                        {font.styles.length} STYLES
-                      </span>
-                    </div>
+                  <div className="p-10 space-y-4">
                     <p
-                      className={cn("text-3xl leading-relaxed transition-all", font.styles[0].fontClass)}
+                      className={cn("text-4xl leading-relaxed transition-all", font.styles[0].fontClass)}
                       style={{ fontSynthesis: 'none' }}
                     >
                       আমি তোমায় ভালোবেসে করেছি তো ভূল
@@ -185,59 +194,104 @@ const FontSimplified = () => {
                     />
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-6 p-4 bg-surface-1 border border-border rounded-2xl">
-                    <div className="flex items-center gap-3 pr-6 border-r border-border">
-                      <span className="text-xs font-mono text-muted-foreground uppercase">Size</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 p-6 bg-surface-1 border border-border rounded-3xl shadow-inner">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-tighter">Font Size</span>
+                        <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20">{fontSize}px</span>
+                      </div>
                       <input
                         type="range"
-                        min="16"
-                        max="120"
+                        min="12"
+                        max="144"
                         value={fontSize}
                         onChange={(e) => setFontSize(parseInt(e.target.value))}
-                        className="w-32 accent-primary"
+                        className="w-full accent-primary h-1.5 bg-surface-2 rounded-lg appearance-none cursor-pointer"
                       />
-                      <span className="text-xs font-mono text-primary w-8">{fontSize}px</span>
                     </div>
 
-                    <div className="flex items-center gap-1 pr-6 border-r border-border">
-                      <button
-                        onClick={() => setTextAlign("left")}
-                        className={cn("p-2 rounded-lg transition-colors", textAlign === "left" ? "bg-primary/20 text-primary" : "hover:bg-surface-2")}
-                      >
-                        <AlignLeft size={18} />
-                      </button>
-                      <button
-                        onClick={() => setTextAlign("center")}
-                        className={cn("p-2 rounded-lg transition-colors", textAlign === "center" ? "bg-primary/20 text-primary" : "hover:bg-surface-2")}
-                      >
-                        <AlignCenter size={18} />
-                      </button>
-                      <button
-                        onClick={() => setTextAlign("right")}
-                        className={cn("p-2 rounded-lg transition-colors", textAlign === "right" ? "bg-primary/20 text-primary" : "hover:bg-surface-2")}
-                      >
-                        <AlignRight size={18} />
-                      </button>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-tighter">Letter Spacing</span>
+                        <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20">{letterSpacing}px</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="-10"
+                        max="50"
+                        value={letterSpacing}
+                        onChange={(e) => setLetterSpacing(parseInt(e.target.value))}
+                        className="w-full accent-primary h-1.5 bg-surface-2 rounded-lg appearance-none cursor-pointer"
+                      />
                     </div>
 
-                    <div className="flex items-center gap-1">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-tighter">Line Height</span>
+                        <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20">{lineHeight}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.5"
+                        max="3"
+                        step="0.1"
+                        value={lineHeight}
+                        onChange={(e) => setLineHeight(parseFloat(e.target.value))}
+                        className="w-full accent-primary h-1.5 bg-surface-2 rounded-lg appearance-none cursor-pointer"
+                      />
+                    </div>
+
+                    <div className="flex flex-col justify-between space-y-4">
+                      <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-tighter">Format & Style</span>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1 bg-surface-2 p-1 rounded-xl border border-border">
+                          <button onClick={() => setTextAlign("left")} className={cn("p-1.5 rounded-lg transition-all", textAlign === "left" ? "bg-primary text-primary-foreground shadow-lg" : "hover:bg-surface-3 text-muted-foreground")}>
+                            <AlignLeft size={16} />
+                          </button>
+                          <button onClick={() => setTextAlign("center")} className={cn("p-1.5 rounded-lg transition-all", textAlign === "center" ? "bg-primary text-primary-foreground shadow-lg" : "hover:bg-surface-3 text-muted-foreground")}>
+                            <AlignCenter size={16} />
+                          </button>
+                          <button onClick={() => setTextAlign("right")} className={cn("p-1.5 rounded-lg transition-all", textAlign === "right" ? "bg-primary text-primary-foreground shadow-lg" : "hover:bg-surface-3 text-muted-foreground")}>
+                            <AlignRight size={16} />
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-1 bg-surface-2 p-1 rounded-xl border border-border">
+                          <button onClick={() => setIsBold(!isBold)} className={cn("p-1.5 rounded-lg transition-all", isBold ? "bg-primary text-primary-foreground shadow-lg" : "hover:bg-surface-3 text-muted-foreground")}>
+                            <Bold size={16} />
+                          </button>
+                          <button onClick={() => setIsItalic(!isItalic)} className={cn("p-1.5 rounded-lg transition-all", isItalic ? "bg-primary text-primary-foreground shadow-lg" : "hover:bg-surface-3 text-muted-foreground")}>
+                            <Italic size={16} />
+                          </button>
+                          <button onClick={() => setIsUnderline(!isUnderline)} className={cn("p-1.5 rounded-lg transition-all", isUnderline ? "bg-primary text-primary-foreground shadow-lg" : "hover:bg-surface-3 text-muted-foreground")}>
+                            <Underline size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="lg:col-span-4 flex items-center justify-between pt-4 border-t border-border/50">
+                      <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-surface-2 border border-border">
+                            <Palette size={16} className="text-muted-foreground" />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="color"
+                              value={textColor}
+                              onChange={(e) => setTextColor(e.target.value)}
+                              className="w-8 h-8 rounded-full border-2 border-border cursor-pointer bg-transparent overflow-hidden"
+                            />
+                            <span className="text-[10px] font-mono text-muted-foreground uppercase">{textColor}</span>
+                          </div>
+                        </div>
+                      </div>
                       <button
-                        onClick={() => setIsBold(!isBold)}
-                        className={cn("p-2 rounded-lg transition-colors", isBold ? "bg-primary/20 text-primary" : "hover:bg-surface-2")}
+                        onClick={resetControls}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-2 border border-border hover:border-primary/50 text-xs font-mono transition-all group"
                       >
-                        <Bold size={18} />
-                      </button>
-                      <button
-                        onClick={() => setIsItalic(!isItalic)}
-                        className={cn("p-2 rounded-lg transition-colors", isItalic ? "bg-primary/20 text-primary" : "hover:bg-surface-2")}
-                      >
-                        <Italic size={18} />
-                      </button>
-                      <button
-                        onClick={() => setIsUnderline(!isUnderline)}
-                        className={cn("p-2 rounded-lg transition-colors", isUnderline ? "bg-primary/20 text-primary" : "hover:bg-surface-2")}
-                      >
-                        <Underline size={18} />
+                        <RotateCcw size={14} className="group-hover:rotate-180 transition-transform duration-500" />
+                        Reset Defaults
                       </button>
                     </div>
                   </div>
@@ -259,6 +313,9 @@ const FontSimplified = () => {
                           style={{
                             fontSynthesis: 'none',
                             fontSize: `${fontSize}px`,
+                            letterSpacing: `${letterSpacing}px`,
+                            lineHeight: lineHeight,
+                            color: textColor,
                             textAlign: textAlign,
                             fontWeight: isBold ? 'bold' : undefined,
                             fontStyle: isItalic ? 'italic' : undefined,
@@ -276,17 +333,17 @@ const FontSimplified = () => {
                 <div className="flex flex-wrap gap-4">
                   <button
                     onClick={() => setShowDownloadPopup(true)}
-                    className="flex items-center gap-2 px-8 py-4 rounded-xl bg-surface-1 border border-border font-bold hover:border-primary transition-all active:scale-95 text-lg"
+                    className="flex-1 md:flex-none flex items-center justify-center gap-2 px-10 py-5 rounded-2xl bg-surface-1 border border-border font-bold hover:border-primary transition-all active:scale-95 text-lg shadow-lg"
                   >
                     <Download size={20} />
                     Download
                   </button>
                   <button
                     onClick={() => setShowEmbedPopup(true)}
-                    className="flex items-center gap-2 px-8 py-4 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-all active:scale-95 text-lg"
+                    className="flex-1 md:flex-none flex items-center justify-center gap-2 px-10 py-5 rounded-2xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-all active:scale-95 text-lg shadow-lg shadow-primary/20"
                   >
                     <Code size={20} />
-                    Use in Website
+                    Embed
                   </button>
                 </div>
 
@@ -296,13 +353,13 @@ const FontSimplified = () => {
                     <h3 className="text-xl font-bold font-mono uppercase tracking-tighter">Font Glyphs Preview</h3>
                     <div className="h-px flex-1 bg-border" />
                   </div>
-                  <div className="terminal-window p-8 md:p-12">
+                  <div className="terminal-window p-8 md:p-12 overflow-hidden">
                     <div
-                      className={cn("text-4xl md:text-5xl lg:text-6xl leading-[1.8] flex flex-wrap gap-x-10 gap-y-8 text-muted-foreground/80", selectedFont.styles[0].fontClass)}
+                      className={cn("grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-8 text-muted-foreground/80 justify-items-center", selectedFont.styles[0].fontClass)}
                       style={{ fontSynthesis: 'none' }}
                     >
                       {GLYPHS.split(" ").map((glyph, i) => (
-                        <span key={i} className="hover:text-primary transition-colors cursor-default">{glyph}</span>
+                        <span key={i} className="text-4xl md:text-5xl lg:text-6xl hover:text-primary transition-all cursor-default hover:scale-125 transform-gpu">{glyph}</span>
                       ))}
                     </div>
                   </div>
