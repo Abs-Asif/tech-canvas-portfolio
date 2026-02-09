@@ -112,42 +112,43 @@ const Dictionary = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans p-4 md:p-8">
-      {/* Back Button */}
-      <button
-        onClick={() => navigate("/")}
-        className="fixed top-4 left-4 p-2 rounded-full bg-surface-1 border border-border hover:border-primary transition-colors z-50 group"
-        aria-label="Back to home"
-      >
-        <ArrowLeft size={20} className="text-muted-foreground group-hover:text-primary transition-colors" />
-      </button>
+    <div className="min-h-screen bg-background text-foreground font-sans pb-20">
+      <div className="max-w-3xl mx-auto pt-6 md:pt-20 px-4">
+        <header className="flex items-center gap-4 mb-10">
+          <button
+            onClick={() => navigate("/")}
+            className="p-2.5 rounded-xl bg-surface-1 border border-border hover:border-primary transition-all active:scale-95 group shrink-0"
+            aria-label="Back to home"
+          >
+            <ArrowLeft size={20} className="text-muted-foreground group-hover:text-primary transition-colors" />
+          </button>
 
-      <div className="max-w-3xl mx-auto pt-12 md:pt-20">
-        <header className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold font-mono mb-2 gradient-text">
-            My Dictionary
-          </h1>
-          <p className="text-muted-foreground font-mono text-sm">
-            {"// Exploration of words and meanings"}
-          </p>
+          <div className="min-w-0">
+            <h1 className="text-2xl md:text-5xl font-bold font-mono truncate gradient-text">
+              My Dictionary
+            </h1>
+            <p className="text-muted-foreground font-mono text-[10px] md:text-sm truncate">
+              {"// Exploration of words and meanings"}
+            </p>
+          </div>
         </header>
 
         {/* Search Bar */}
-        <div className="relative mb-12 flex gap-2">
+        <div className="relative mb-10 flex gap-2">
           <div className="relative flex-1 group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={18} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors pointer-events-none" size={18} />
             <input
               type="text"
-              placeholder="Search for a word..."
+              placeholder="Search..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              className="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pl-10 pr-10 py-6 bg-surface-1 border-border focus:border-primary/50 focus:ring-primary/20 transition-all font-mono"
+              className="flex h-14 w-full rounded-2xl border border-border bg-surface-1 px-12 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/50 transition-all font-mono"
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-muted transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-muted transition-colors"
               >
                 <X size={16} className="text-muted-foreground" />
               </button>
@@ -155,9 +156,10 @@ const Dictionary = () => {
           </div>
           <button
             onClick={handleSearch}
-            className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 py-6 px-8 bg-primary text-primary-foreground hover:bg-primary/90 font-mono font-bold transition-all"
+            className="h-14 w-14 inline-flex items-center justify-center rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all active:scale-95 shrink-0 shadow-[0_0_15px_rgba(34,197,94,0.2)]"
+            title="Search"
           >
-            SEARCH
+            <Search size={20} />
           </button>
         </div>
 
