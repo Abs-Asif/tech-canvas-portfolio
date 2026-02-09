@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Dictionary from "./pages/Dictionary";
 import FontSimplified from "./pages/FontSimplified";
+import FontDocumentation from "./pages/FontDocumentation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -20,6 +21,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/D" element={<Dictionary />} />
           <Route path="/F" element={<FontSimplified />} />
+          <Route path="/F/D" element={<FontDocumentation />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Search, X, Type, Download, Code, Check, Copy, ExternalLink, Info } from "lucide-react";
+import { ArrowLeft, Search, X, Type, Download, Code, Check, Copy, ExternalLink, Info, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +36,13 @@ const FontSimplified = () => {
   const [selectedFontId, setSelectedFontId] = useState<string | null>(null);
   const [customText, setCustomText] = useState("");
   const [showEmbedPopup, setShowEmbedPopup] = useState(false);
+  const [showDownloadPopup, setShowDownloadPopup] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [fontSize, setFontSize] = useState(40);
+  const [textAlign, setTextAlign] = useState<"left" | "center" | "right">("left");
+  const [isBold, setIsBold] = useState(false);
+  const [isItalic, setIsItalic] = useState(false);
+  const [isUnderline, setIsUnderline] = useState(false);
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -125,10 +131,7 @@ const FontSimplified = () => {
                     <ExternalLink size={12} className="text-muted-foreground group-hover:text-primary transition-colors" />
                   </div>
                   <div className="p-6 space-y-4">
-                    <div className="flex justify-between items-start">
-                      <h3 className="text-lg font-bold group-hover:text-primary transition-colors">
-                        {font.name}
-                      </h3>
+                    <div className="flex justify-end items-start">
                       <span className="text-[10px] font-mono bg-surface-2 px-1.5 py-0.5 rounded border border-border">
                         {font.styles.length} STYLES
                       </span>
@@ -169,16 +172,75 @@ const FontSimplified = () => {
                   </div>
                 </div>
 
-                {/* Custom Preview Input */}
-                <div className="space-y-4">
-                  <label className="text-sm font-mono text-muted-foreground uppercase tracking-widest">Type here to preview</label>
-                  <input
-                    type="text"
-                    placeholder="আমি তোমায় ভালোবেসে করেছি তো ভূল"
-                    value={customText}
-                    onChange={(e) => setCustomText(e.target.value)}
-                    className="w-full bg-surface-1 border border-border rounded-2xl px-6 py-4 text-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all font-mono"
-                  />
+                {/* Custom Preview Input & Controls */}
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                    <label className="text-sm font-mono text-muted-foreground uppercase tracking-widest">Type here to preview</label>
+                    <input
+                      type="text"
+                      placeholder="আমি তোমায় ভালোবেসে করেছি তো ভূল"
+                      value={customText}
+                      onChange={(e) => setCustomText(e.target.value)}
+                      className="w-full bg-surface-1 border border-border rounded-2xl px-6 py-4 text-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all font-mono"
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-6 p-4 bg-surface-1 border border-border rounded-2xl">
+                    <div className="flex items-center gap-3 pr-6 border-r border-border">
+                      <span className="text-xs font-mono text-muted-foreground uppercase">Size</span>
+                      <input
+                        type="range"
+                        min="16"
+                        max="120"
+                        value={fontSize}
+                        onChange={(e) => setFontSize(parseInt(e.target.value))}
+                        className="w-32 accent-primary"
+                      />
+                      <span className="text-xs font-mono text-primary w-8">{fontSize}px</span>
+                    </div>
+
+                    <div className="flex items-center gap-1 pr-6 border-r border-border">
+                      <button
+                        onClick={() => setTextAlign("left")}
+                        className={cn("p-2 rounded-lg transition-colors", textAlign === "left" ? "bg-primary/20 text-primary" : "hover:bg-surface-2")}
+                      >
+                        <AlignLeft size={18} />
+                      </button>
+                      <button
+                        onClick={() => setTextAlign("center")}
+                        className={cn("p-2 rounded-lg transition-colors", textAlign === "center" ? "bg-primary/20 text-primary" : "hover:bg-surface-2")}
+                      >
+                        <AlignCenter size={18} />
+                      </button>
+                      <button
+                        onClick={() => setTextAlign("right")}
+                        className={cn("p-2 rounded-lg transition-colors", textAlign === "right" ? "bg-primary/20 text-primary" : "hover:bg-surface-2")}
+                      >
+                        <AlignRight size={18} />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setIsBold(!isBold)}
+                        className={cn("p-2 rounded-lg transition-colors", isBold ? "bg-primary/20 text-primary" : "hover:bg-surface-2")}
+                      >
+                        <Bold size={18} />
+                      </button>
+                      <button
+                        onClick={() => setIsItalic(!isItalic)}
+                        className={cn("p-2 rounded-lg transition-colors", isItalic ? "bg-primary/20 text-primary" : "hover:bg-surface-2")}
+                      >
+                        <Italic size={18} />
+                      </button>
+                      <button
+                        onClick={() => setIsUnderline(!isUnderline)}
+                        className={cn("p-2 rounded-lg transition-colors", isUnderline ? "bg-primary/20 text-primary" : "hover:bg-surface-2")}
+                      >
+                        <Underline size={18} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Style Previews */}
@@ -193,8 +255,15 @@ const FontSimplified = () => {
                       </div>
                       <div className="p-8 md:p-12">
                         <p
-                          className={cn("text-4xl md:text-6xl leading-tight break-words", style.fontClass)}
-                          style={{ fontSynthesis: 'none' }}
+                          className={cn("leading-tight break-words transition-all", style.fontClass)}
+                          style={{
+                            fontSynthesis: 'none',
+                            fontSize: `${fontSize}px`,
+                            textAlign: textAlign,
+                            fontWeight: isBold ? 'bold' : undefined,
+                            fontStyle: isItalic ? 'italic' : undefined,
+                            textDecoration: isUnderline ? 'underline' : undefined
+                          }}
                         >
                           {customText || "আমি তোমায় ভালোবেসে করেছি তো ভূল"}
                         </p>
@@ -205,24 +274,18 @@ const FontSimplified = () => {
 
                 {/* Action Buttons */}
                 <div className="flex flex-wrap gap-4">
-                  <div className="flex flex-wrap gap-3">
-                    {selectedFont.styles.map((style) => (
-                      <a
-                        key={style.name}
-                        href={style.file}
-                        download={`${selectedFont.id}-${style.name.toLowerCase()}.ttf`}
-                        className="flex items-center gap-2 px-6 py-3 rounded-xl bg-surface-1 border border-border font-bold hover:border-primary transition-all active:scale-95"
-                      >
-                        <Download size={18} />
-                        Download {style.name}
-                      </a>
-                    ))}
-                  </div>
+                  <button
+                    onClick={() => setShowDownloadPopup(true)}
+                    className="flex items-center gap-2 px-8 py-4 rounded-xl bg-surface-1 border border-border font-bold hover:border-primary transition-all active:scale-95 text-lg"
+                  >
+                    <Download size={20} />
+                    Download
+                  </button>
                   <button
                     onClick={() => setShowEmbedPopup(true)}
-                    className="flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-all active:scale-95"
+                    className="flex items-center gap-2 px-8 py-4 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-all active:scale-95 text-lg"
                   >
-                    <Code size={18} />
+                    <Code size={20} />
                     Use in Website
                   </button>
                 </div>
@@ -233,9 +296,9 @@ const FontSimplified = () => {
                     <h3 className="text-xl font-bold font-mono uppercase tracking-tighter">Font Glyphs Preview</h3>
                     <div className="h-px flex-1 bg-border" />
                   </div>
-                  <div className="terminal-window p-8">
+                  <div className="terminal-window p-8 md:p-12">
                     <div
-                      className={cn("text-2xl md:text-3xl leading-[2] flex flex-wrap gap-x-6 gap-y-4 text-muted-foreground/80", selectedFont.styles[0].fontClass)}
+                      className={cn("text-4xl md:text-5xl lg:text-6xl leading-[1.8] flex flex-wrap gap-x-10 gap-y-8 text-muted-foreground/80", selectedFont.styles[0].fontClass)}
                       style={{ fontSynthesis: 'none' }}
                     >
                       {GLYPHS.split(" ").map((glyph, i) => (
@@ -245,14 +308,54 @@ const FontSimplified = () => {
                   </div>
                 </div>
 
+                {/* Download Popup */}
+                {showDownloadPopup && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in">
+                    <div className="terminal-window max-w-md w-full shadow-2xl">
+                      <div className="terminal-header flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Download size={14} className="text-primary" />
+                          <span className="text-xs font-mono font-bold">DOWNLOAD_OPTIONS</span>
+                        </div>
+                        <button
+                          onClick={() => setShowDownloadPopup(false)}
+                          className="p-1 hover:bg-surface-2 rounded-md transition-colors"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                      <div className="p-6 space-y-4">
+                        <p className="text-sm text-muted-foreground mb-4 font-mono">Select style to download:</p>
+                        {selectedFont.styles.map((style) => (
+                          <a
+                            key={style.name}
+                            href={style.file}
+                            download={`${selectedFont.id}-${style.name.toLowerCase()}.ttf`}
+                            className="flex items-center justify-between p-4 rounded-xl bg-surface-1 border border-border hover:border-primary transition-all group"
+                          >
+                            <span className="font-bold">{style.name}</span>
+                            <Download size={18} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                          </a>
+                        ))}
+                        <button
+                          onClick={() => setShowDownloadPopup(false)}
+                          className="w-full py-3 mt-4 rounded-xl bg-surface-2 border border-border font-bold hover:bg-surface-3 transition-colors"
+                        >
+                          Close
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Embed Popup */}
                 {showEmbedPopup && (
                   <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in">
-                    <div className="terminal-window max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+                    <div className="terminal-window max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
                       <div className="terminal-header flex items-center justify-between sticky top-0 bg-surface-1 z-10">
                         <div className="flex items-center gap-2">
                           <Code size={14} className="text-primary" />
-                          <span className="text-xs font-mono font-bold">EMBED_CODE_GENERATOR</span>
+                          <span className="text-xs font-mono font-bold uppercase">Web Embed</span>
                         </div>
                         <button
                           onClick={() => setShowEmbedPopup(false)}
@@ -261,68 +364,107 @@ const FontSimplified = () => {
                           <X size={16} />
                         </button>
                       </div>
-                      <div className="p-6 md:p-8 space-y-8">
-                        <div>
-                          <h4 className="text-lg font-bold mb-4 flex items-center gap-2">
-                            <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-mono">1</span>
-                            Embed code in the &lt;head&gt; of your html
-                          </h4>
-                          <div className="relative group">
-                            <pre className="bg-black/50 p-4 rounded-xl text-xs font-mono overflow-x-auto border border-border text-muted-foreground leading-relaxed">
-{`<link rel="stylesheet" href="https://abdullah.ami.bd/fonts/${selectedFont.id}.css">`}
-                            </pre>
-                            <button
-                              onClick={() => handleCopy(`<link rel="stylesheet" href="https://abdullah.ami.bd/fonts/${selectedFont.id}.css">`, 'link')}
-                              className="absolute right-3 top-3 p-2 rounded-lg bg-surface-1 border border-border hover:border-primary transition-all opacity-0 group-hover:opacity-100"
-                            >
-                              {copied === 'link' ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-                            </button>
+                      <div className="p-6 md:p-8 space-y-10">
+                        <div className="space-y-6">
+                          <div className="flex items-center gap-4 text-primary">
+                            <Code size={20} />
+                            <h4 className="text-xl font-bold uppercase tracking-tight">&lt;link&gt;</h4>
                           </div>
-                        </div>
 
-                        <div>
-                          <h4 className="text-lg font-bold mb-4 flex items-center gap-2">
-                            <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-mono">2</span>
-                            Playwrite CU Guides: CSS class
-                          </h4>
-                          <div className="relative group">
-                            <pre className="bg-black/50 p-4 rounded-xl text-xs font-mono overflow-x-auto border border-border text-muted-foreground leading-relaxed">
-{`.${selectedFont.id} {
-  font-family: '${selectedFont.name}', sans-serif;
-}`}
-                            </pre>
-                            <button
-                              onClick={() => handleCopy(`.${selectedFont.id} {\n  font-family: '${selectedFont.name}', sans-serif;\n}`, 'css')}
-                              className="absolute right-3 top-3 p-2 rounded-lg bg-surface-1 border border-border hover:border-primary transition-all opacity-0 group-hover:opacity-100"
-                            >
-                              {copied === 'css' ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="pt-4 border-t border-border/50">
-                          <h4 className="text-sm font-bold mb-4 uppercase text-muted-foreground">Alternatively, use @import</h4>
                           <div className="space-y-4">
+                            <h5 className="text-sm font-mono text-muted-foreground uppercase">Embed code in the &lt;head&gt; of your html</h5>
                             <div className="relative group">
-                              <pre className="bg-black/50 p-4 rounded-xl text-[10px] font-mono overflow-x-auto border border-border text-muted-foreground">
-{`@import url('https://abdullah.ami.bd/fonts/${selectedFont.id}.css');`}
+                              <pre className="bg-black/50 p-6 rounded-xl text-xs font-mono overflow-x-auto border border-border text-muted-foreground leading-relaxed">
+{`<link rel="preconnect" href="https://abdullah.ami.bd">
+<link rel="stylesheet" href="https://abdullah.ami.bd/fonts/${selectedFont.id}.css">`}
                               </pre>
                               <button
-                                onClick={() => handleCopy(`@import url('https://abdullah.ami.bd/fonts/${selectedFont.id}.css');`, 'import')}
-                                className="absolute right-3 top-3 p-1.5 rounded-md bg-surface-1 border border-border opacity-0 group-hover:opacity-100"
+                                onClick={() => handleCopy(`<link rel="preconnect" href="https://abdullah.ami.bd">\n<link rel="stylesheet" href="https://abdullah.ami.bd/fonts/${selectedFont.id}.css">`, 'link')}
+                                className="absolute right-4 top-4 p-2 rounded-lg bg-surface-1 border border-border hover:border-primary transition-all opacity-0 group-hover:opacity-100"
                               >
-                                {copied === 'import' ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
+                                {copied === 'link' ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="space-y-4">
+                            <h5 className="text-sm font-mono text-muted-foreground uppercase">Playwrite CU Guides: CSS class</h5>
+                            <div className="relative group">
+                              <pre className="bg-black/50 p-6 rounded-xl text-xs font-mono overflow-x-auto border border-border text-muted-foreground leading-relaxed">
+{`.${selectedFont.id}-regular {
+  font-family: "${selectedFont.name}", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}`}
+                              </pre>
+                              <button
+                                onClick={() => handleCopy(`.${selectedFont.id}-regular {\n  font-family: "${selectedFont.name}", sans-serif;\n  font-weight: 400;\n  font-style: normal;\n}`, 'css')}
+                                className="absolute right-4 top-4 p-2 rounded-lg bg-surface-1 border border-border hover:border-primary transition-all opacity-0 group-hover:opacity-100"
+                              >
+                                {copied === 'css' ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
                               </button>
                             </div>
                           </div>
                         </div>
 
-                        <button
-                          onClick={() => setShowEmbedPopup(false)}
-                          className="w-full py-3 rounded-xl bg-surface-2 border border-border font-bold hover:bg-surface-3 transition-colors"
-                        >
-                          Close
-                        </button>
+                        <div className="space-y-6 pt-10 border-t border-border">
+                          <div className="flex items-center gap-4 text-accent">
+                            <Type size={20} />
+                            <h4 className="text-xl font-bold uppercase tracking-tight">@import</h4>
+                          </div>
+
+                          <div className="space-y-4">
+                            <h5 className="text-sm font-mono text-muted-foreground uppercase">Embed code in the &lt;head&gt; of your html</h5>
+                            <div className="relative group">
+                              <pre className="bg-black/50 p-6 rounded-xl text-xs font-mono overflow-x-auto border border-border text-muted-foreground leading-relaxed">
+{`<style>
+@import url('https://abdullah.ami.bd/fonts/${selectedFont.id}.css');
+</style>`}
+                              </pre>
+                              <button
+                                onClick={() => handleCopy(`<style>\n@import url('https://abdullah.ami.bd/fonts/${selectedFont.id}.css');\n</style>`, 'import')}
+                                className="absolute right-4 top-4 p-2 rounded-lg bg-surface-1 border border-border hover:border-primary transition-all opacity-0 group-hover:opacity-100"
+                              >
+                                {copied === 'import' ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="space-y-4">
+                            <h5 className="text-sm font-mono text-muted-foreground uppercase">Playwrite CU Guides: CSS class</h5>
+                            <div className="relative group">
+                              <pre className="bg-black/50 p-6 rounded-xl text-xs font-mono overflow-x-auto border border-border text-muted-foreground leading-relaxed">
+{`.${selectedFont.id}-regular {
+  font-family: "${selectedFont.name}", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}`}
+                              </pre>
+                              <button
+                                onClick={() => handleCopy(`.${selectedFont.id}-regular {\n  font-family: "${selectedFont.name}", sans-serif;\n  font-weight: 400;\n  font-style: normal;\n}`, 'css-import')}
+                                className="absolute right-4 top-4 p-2 rounded-lg bg-surface-1 border border-border hover:border-primary transition-all opacity-0 group-hover:opacity-100"
+                              >
+                                {copied === 'css-import' ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-8">
+                          <button
+                            onClick={() => navigate("/F/D")}
+                            className="flex items-center gap-2 text-primary font-mono text-sm hover:underline"
+                          >
+                            <Info size={16} />
+                            Read Documentation
+                          </button>
+                          <button
+                            onClick={() => setShowEmbedPopup(false)}
+                            className="w-full md:w-auto px-10 py-3 rounded-xl bg-surface-2 border border-border font-bold hover:bg-surface-3 transition-colors"
+                          >
+                            Close
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
