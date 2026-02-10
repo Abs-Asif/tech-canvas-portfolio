@@ -1,0 +1,2 @@
+[functions.validate-font-key]
+verify_jwt = false

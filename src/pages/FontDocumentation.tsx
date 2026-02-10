@@ -1,4 +1,5 @@
-import { ArrowLeft, BookOpen, Code, Copy, Check, Globe, Type, Terminal, Info, ExternalLink, Zap } from "lucide-react";
+import { ArrowLeft, BookOpen, Code, Copy, Check, Globe, Type, Terminal, Info, ExternalLink, Zap, Crown, Key } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
@@ -146,6 +147,51 @@ body {
                       </button>
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Premium Fonts */}
+          <section className="space-y-8">
+            <div className="flex items-center gap-3 text-accent border-b border-border pb-4">
+              <Crown size={24} />
+              <h2 className="text-2xl font-bold tracking-tight uppercase">Premium Fonts</h2>
+            </div>
+
+            <div className="p-6 rounded-2xl bg-accent/5 border border-accent/10 space-y-4">
+              <div className="flex items-center gap-2">
+                <Key size={18} className="text-accent" />
+                <h4 className="font-bold uppercase text-sm tracking-wider text-accent">July Font — API Key Required</h4>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                The <strong>July</strong> font is a premium font. Downloading the font files is free, but embedding it via our CDN requires an API key.
+                To get an API key, <Link to="/F/L" className="text-primary hover:underline font-bold">create an account</Link> and request one from the administrator.
+              </p>
+            </div>
+
+            <div className="terminal-window">
+              <div className="terminal-header flex justify-between">
+                <span className="text-[10px] font-mono text-muted-foreground">PREMIUM :: EMBED WITH API KEY</span>
+              </div>
+              <div className="p-6">
+                <div className="relative group">
+                  <pre className="bg-surface-1 p-6 rounded-xl text-xs font-mono overflow-x-auto border border-border text-muted-foreground leading-relaxed">
+{`<link rel="stylesheet" 
+  href="${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-font-key?key=YOUR_API_KEY">
+
+/* Then use in CSS: */
+.my-text {
+  font-family: 'July', sans-serif;
+  font-weight: 400;
+}`}
+                  </pre>
+                  <button
+                    onClick={() => handleCopy(`<link rel="stylesheet" href="${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-font-key?key=YOUR_API_KEY">`, 'premium-embed')}
+                    className="absolute right-4 top-4 p-2 rounded-lg bg-surface-1 border border-border opacity-0 group-hover:opacity-100 transition-all hover:border-accent"
+                  >
+                    {copied === 'premium-embed' ? <Check size={16} className="text-primary" /> : <Copy size={16} />}
+                  </button>
                 </div>
               </div>
             </div>

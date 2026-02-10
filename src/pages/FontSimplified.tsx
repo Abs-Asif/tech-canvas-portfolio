@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Search, X, Type, Download, Code, Check, Copy, ExternalLink, Info, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, Palette, RotateCcw, ChevronRight } from "lucide-react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { ArrowLeft, Search, X, Type, Download, Code, Check, Copy, ExternalLink, Info, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, Palette, RotateCcw, ChevronRight, Crown, LogIn, Key } from "lucide-react";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 interface FontStyle {
@@ -14,6 +14,7 @@ interface FontData {
   name: string;
   id: string;
   styles: FontStyle[];
+  isPremium?: boolean;
 }
 
 const fonts: FontData[] = [
@@ -43,6 +44,7 @@ const fonts: FontData[] = [
   {
     name: "July",
     id: "july",
+    isPremium: true,
     styles: [
       { name: "Regular", weight: "400", file: "/fonts/July-Regular.ttf", fontClass: "font-july-regular" },
       { name: "Italic", weight: "400", file: "/fonts/July-Italic.ttf", fontClass: "font-july-italic" },
@@ -164,7 +166,7 @@ const FontSimplified = () => {
             <ArrowLeft size={20} className="text-muted-foreground group-hover:text-primary transition-colors" />
           </button>
 
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h1 className="text-2xl md:text-5xl font-bold font-mono truncate gradient-text">
               Bangla Fonts Simplified
             </h1>
@@ -172,6 +174,14 @@ const FontSimplified = () => {
               {"// Simplifying Bangla typography for the web"}
             </p>
           </div>
+
+          <Link
+            to="/F/L"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-1 border border-border hover:border-primary text-xs font-mono transition-all shrink-0"
+          >
+            <LogIn size={14} />
+            <span className="hidden md:inline">Sign In</span>
+          </Link>
         </header>
 
         {!selectedFontId && (
@@ -206,7 +216,14 @@ const FontSimplified = () => {
                   className="group cursor-pointer border border-border rounded-2xl bg-surface-1/50 hover:bg-surface-1 hover:border-primary/50 transition-all p-6 flex flex-col md:flex-row md:items-center justify-between gap-6"
                 >
                   <div className="min-w-[180px] shrink-0">
-                    <h3 className="text-lg font-bold group-hover:text-primary transition-colors truncate">{font.name}</h3>
+                    <h3 className="text-lg font-bold group-hover:text-primary transition-colors truncate flex items-center gap-2">
+                      {font.name}
+                      {font.isPremium && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
+                          <Crown size={10} /> PREMIUM
+                        </span>
+                      )}
+                    </h3>
                     <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">{font.styles.length} styles available</p>
                   </div>
                   <div className="flex-1 min-w-0 relative">
@@ -240,7 +257,14 @@ const FontSimplified = () => {
                 {/* Font Title and Header */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-border pb-8">
                   <div>
-                    <h2 className="text-4xl md:text-6xl font-bold mb-4">{selectedFont.name}</h2>
+                    <h2 className="text-4xl md:text-6xl font-bold mb-4 flex items-center gap-3">
+                      {selectedFont.name}
+                      {selectedFont.isPremium && (
+                        <span className="inline-flex items-center gap-1 text-sm font-mono px-3 py-1 rounded-full bg-accent/10 text-accent border border-accent/20">
+                          <Crown size={14} /> PREMIUM
+                        </span>
+                      )}
+                    </h2>
                     <div className="flex flex-wrap gap-4">
                       <span className="text-xs font-mono text-primary bg-primary/10 px-2 py-1 rounded border border-primary/20">
                         {selectedFont.styles.length} Styles Available
@@ -496,7 +520,23 @@ const FontSimplified = () => {
                           <X size={16} />
                         </button>
                       </div>
-                      <div className="p-6 md:p-8 space-y-10">
+                       <div className="p-6 md:p-8 space-y-10">
+                        {selectedFont.isPremium && (
+                          <div className="p-4 rounded-xl bg-accent/5 border border-accent/20 flex items-start gap-3">
+                            <Key size={18} className="text-accent shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-sm font-bold text-accent mb-1">Premium Font — API Key Required</p>
+                              <p className="text-xs text-muted-foreground leading-relaxed">
+                                July font requires an API key for embedding. Download is free, but to embed it via CSS, you'll need an API key.{" "}
+                                <Link to="/F/L" className="text-primary hover:underline" onClick={() => setShowEmbedPopup(false)}>
+                                  Sign in or create an account
+                                </Link>{" "}
+                                to get one.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
                         <div className="space-y-6">
                           <div className="flex items-center gap-4 text-primary">
                             <Code size={20} />
@@ -506,23 +546,31 @@ const FontSimplified = () => {
                           <div className="space-y-4">
                             <h5 className="text-sm font-mono text-muted-foreground uppercase">Embed code in the &lt;head&gt; of your html</h5>
                             <div className="relative group">
-                              <pre className="bg-black/50 p-6 rounded-xl text-xs font-mono overflow-x-auto border border-border text-muted-foreground leading-relaxed">
-{`<link rel="preconnect" href="https://abdullah.ami.bd">
+                              <pre className="bg-surface-1 p-6 rounded-xl text-xs font-mono overflow-x-auto border border-border text-muted-foreground leading-relaxed">
+{selectedFont.isPremium
+  ? `<link rel="preconnect" href="https://abdullah.ami.bd">
+<link rel="stylesheet" href="${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-font-key?key=YOUR_API_KEY">`
+  : `<link rel="preconnect" href="https://abdullah.ami.bd">
 <link rel="stylesheet" href="https://abdullah.ami.bd/fonts/${selectedFont.id}.css">`}
                               </pre>
                               <button
-                                onClick={() => handleCopy(`<link rel="preconnect" href="https://abdullah.ami.bd">\n<link rel="stylesheet" href="https://abdullah.ami.bd/fonts/${selectedFont.id}.css">`, 'link')}
+                                onClick={() => handleCopy(
+                                  selectedFont.isPremium
+                                    ? `<link rel="preconnect" href="https://abdullah.ami.bd">\n<link rel="stylesheet" href="${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-font-key?key=YOUR_API_KEY">`
+                                    : `<link rel="preconnect" href="https://abdullah.ami.bd">\n<link rel="stylesheet" href="https://abdullah.ami.bd/fonts/${selectedFont.id}.css">`,
+                                  'link'
+                                )}
                                 className="absolute right-4 top-4 p-2 rounded-lg bg-surface-1 border border-border hover:border-primary transition-all opacity-0 group-hover:opacity-100"
                               >
-                                {copied === 'link' ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                                {copied === 'link' ? <Check size={16} className="text-primary" /> : <Copy size={16} />}
                               </button>
                             </div>
                           </div>
 
                           <div className="space-y-4">
-                            <h5 className="text-sm font-mono text-muted-foreground uppercase">Playwrite CU Guides: CSS class</h5>
+                            <h5 className="text-sm font-mono text-muted-foreground uppercase">CSS class</h5>
                             <div className="relative group">
-                              <pre className="bg-black/50 p-6 rounded-xl text-xs font-mono overflow-x-auto border border-border text-muted-foreground leading-relaxed">
+                              <pre className="bg-surface-1 p-6 rounded-xl text-xs font-mono overflow-x-auto border border-border text-muted-foreground leading-relaxed">
 {`.${selectedFont.id}-regular {
   font-family: "${selectedFont.name}", sans-serif;
   font-weight: 400;
@@ -533,12 +581,13 @@ const FontSimplified = () => {
                                 onClick={() => handleCopy(`.${selectedFont.id}-regular {\n  font-family: "${selectedFont.name}", sans-serif;\n  font-weight: 400;\n  font-style: normal;\n}`, 'css')}
                                 className="absolute right-4 top-4 p-2 rounded-lg bg-surface-1 border border-border hover:border-primary transition-all opacity-0 group-hover:opacity-100"
                               >
-                                {copied === 'css' ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                                {copied === 'css' ? <Check size={16} className="text-primary" /> : <Copy size={16} />}
                               </button>
                             </div>
                           </div>
                         </div>
 
+                        {!selectedFont.isPremium && (
                         <div className="space-y-6 pt-10 border-t border-border">
                           <div className="flex items-center gap-4 text-accent">
                             <Type size={20} />
@@ -548,7 +597,7 @@ const FontSimplified = () => {
                           <div className="space-y-4">
                             <h5 className="text-sm font-mono text-muted-foreground uppercase">Embed code in the &lt;head&gt; of your html</h5>
                             <div className="relative group">
-                              <pre className="bg-black/50 p-6 rounded-xl text-xs font-mono overflow-x-auto border border-border text-muted-foreground leading-relaxed">
+                              <pre className="bg-surface-1 p-6 rounded-xl text-xs font-mono overflow-x-auto border border-border text-muted-foreground leading-relaxed">
 {`<style>
 @import url('https://abdullah.ami.bd/fonts/${selectedFont.id}.css');
 </style>`}
@@ -557,30 +606,12 @@ const FontSimplified = () => {
                                 onClick={() => handleCopy(`<style>\n@import url('https://abdullah.ami.bd/fonts/${selectedFont.id}.css');\n</style>`, 'import')}
                                 className="absolute right-4 top-4 p-2 rounded-lg bg-surface-1 border border-border hover:border-primary transition-all opacity-0 group-hover:opacity-100"
                               >
-                                {copied === 'import' ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
-                              </button>
-                            </div>
-                          </div>
-
-                          <div className="space-y-4">
-                            <h5 className="text-sm font-mono text-muted-foreground uppercase">Playwrite CU Guides: CSS class</h5>
-                            <div className="relative group">
-                              <pre className="bg-black/50 p-6 rounded-xl text-xs font-mono overflow-x-auto border border-border text-muted-foreground leading-relaxed">
-{`.${selectedFont.id}-regular {
-  font-family: "${selectedFont.name}", sans-serif;
-  font-weight: 400;
-  font-style: normal;
-}`}
-                              </pre>
-                              <button
-                                onClick={() => handleCopy(`.${selectedFont.id}-regular {\n  font-family: "${selectedFont.name}", sans-serif;\n  font-weight: 400;\n  font-style: normal;\n}`, 'css-import')}
-                                className="absolute right-4 top-4 p-2 rounded-lg bg-surface-1 border border-border hover:border-primary transition-all opacity-0 group-hover:opacity-100"
-                              >
-                                {copied === 'css-import' ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                                {copied === 'import' ? <Check size={16} className="text-primary" /> : <Copy size={16} />}
                               </button>
                             </div>
                           </div>
                         </div>
+                        )}
 
                         <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-8">
                           <button
