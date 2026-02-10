@@ -102,6 +102,15 @@ const FontSimplified = () => {
   const [isItalic, setIsItalic] = useState(false);
   const [isUnderline, setIsUnderline] = useState(false);
 
+  const trackEvent = (path: string) => {
+    if (window.goatcounter && window.goatcounter.count) {
+      window.goatcounter.count({
+        path: path,
+        event: true,
+      });
+    }
+  };
+
   const resetControls = () => {
     setFontSize(40);
     setLetterSpacing(0);
@@ -116,6 +125,9 @@ const FontSimplified = () => {
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text).then(() => {
       setCopied(id);
+      if (selectedFontId) {
+        trackEvent(`/font/embed/${selectedFontId}`);
+      }
       setTimeout(() => setCopied(null), 2000);
     });
   };
@@ -394,7 +406,10 @@ const FontSimplified = () => {
                     Download
                   </button>
                   <button
-                    onClick={() => setShowEmbedPopup(true)}
+                    onClick={() => {
+                      setShowEmbedPopup(true);
+                      if (selectedFontId) trackEvent(`/font/embed-view/${selectedFontId}`);
+                    }}
                     className="flex-1 md:flex-none flex items-center justify-center gap-2 px-10 py-5 rounded-2xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-all active:scale-95 text-lg shadow-lg shadow-primary/20"
                   >
                     <Code size={20} />
@@ -443,6 +458,7 @@ const FontSimplified = () => {
                             key={style.name}
                             href={style.file}
                             download={`${selectedFont.id}-${style.name.toLowerCase()}.ttf`}
+                            onClick={() => trackEvent(`/font/download/${selectedFont.id}/${style.name.toLowerCase()}`)}
                             className="flex items-center justify-between p-4 rounded-xl bg-surface-1 border border-border hover:border-primary transition-all group"
                           >
                             <span className="font-bold">{style.name}</span>
