@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Search, X, Type, Download, Code, Check, Copy, ExternalLink, Info, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, Palette, RotateCcw } from "lucide-react";
+import { ArrowLeft, Search, X, Type, Download, Code, Check, Copy, ExternalLink, Info, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, Palette, RotateCcw, ChevronRight } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -198,26 +198,30 @@ const FontSimplified = () => {
         {/* Font Content */}
         <div className="min-h-[400px]">
           {!selectedFontId ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
+            <div className="flex flex-col gap-4 animate-fade-in pb-20">
               {filteredFonts.map((font) => (
                 <div
                   key={font.id}
                   onClick={() => navigate(`#${font.id}`)}
-                  className="terminal-window group cursor-pointer hover:border-primary/50 transition-all active:scale-[0.98]"
+                  className="group cursor-pointer border border-border rounded-2xl bg-surface-1/50 hover:bg-surface-1 hover:border-primary/50 transition-all p-6 flex flex-col md:flex-row md:items-center justify-between gap-6"
                 >
-                  <div className="terminal-header flex items-center justify-between gap-2 overflow-hidden">
-                    <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider truncate">
-                      FONT::<span className="text-primary">{font.name}</span> <span className="opacity-50 ml-1 whitespace-nowrap">({font.styles.length} STYLES)</span>
-                    </span>
-                    <ExternalLink size={12} className="text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                  <div className="min-w-[180px] shrink-0">
+                    <h3 className="text-lg font-bold group-hover:text-primary transition-colors truncate">{font.name}</h3>
+                    <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">{font.styles.length} styles available</p>
                   </div>
-                  <div className="p-10 space-y-4">
+                  <div className="flex-1 min-w-0 relative">
                     <p
-                      className={cn("text-4xl leading-relaxed transition-all", font.styles[0].fontClass)}
+                      className={cn("text-2xl md:text-3xl whitespace-nowrap overflow-hidden pr-20 transition-all", font.styles[0].fontClass)}
                       style={{ fontSynthesis: 'none' }}
                     >
                       আমি তোমায় ভালোবেসে করেছি তো ভূল
                     </p>
+                    <div className="absolute top-0 right-0 bottom-0 w-24 bg-gradient-to-l from-background to-transparent pointer-events-none md:from-surface-1" />
+                  </div>
+                  <div className="shrink-0 hidden md:block">
+                    <div className="p-2 rounded-xl bg-surface-2 border border-border group-hover:border-primary/50 transition-colors">
+                      <ChevronRight size={18} className="text-muted-foreground group-hover:text-primary" />
+                    </div>
                   </div>
                 </div>
               ))}
