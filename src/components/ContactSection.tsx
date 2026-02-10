@@ -85,7 +85,7 @@ export const ContactSection = () => {
               className="flex flex-col items-center p-6 rounded-2xl bg-secondary/20 border border-border/50 hover:border-blue-500/50 hover:bg-secondary/30 transition-all text-center h-full"
             >
               <div className="w-10 h-10 rounded-full bg-surface-1 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <FacebookIcon size={18} />
+                <FacebookIcon size={18} className="text-blue-500" />
               </div>
               <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">Facebook</span>
               <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">My Personal Profile</span>
