@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, BarChart3, Globe, MousePointer2, Smartphone, Terminal, Users, Download, Code, Monitor, ExternalLink, Activity, Calendar } from "lucide-react";
+import { ArrowLeft, BarChart3, Globe, MousePointer2, Smartphone, Terminal, Users, Download, Code, Monitor, ExternalLink, Activity, Calendar, X, ChevronRight, Type } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import {
   BarChart,
   Bar,
@@ -54,6 +55,7 @@ interface PropertyStats {
 
 const Analytics = () => {
   const navigate = useNavigate();
+  const [selectedFontId, setSelectedFontId] = useState<string | null>(null);
 
   // Fetch Total Stats
   const { data: totalData, isLoading: isLoadingTotal } = useQuery<TotalStats>({
@@ -88,65 +90,54 @@ const Analytics = () => {
     },
   });
 
-  // Fetch Browser Stats
-  const { data: browserData, isLoading: isLoadingBrowser } = useQuery<PropertyStats>({
-    queryKey: ["stats-browsers"],
+  // Fetch Hits with Daily data (for graphs)
+  const { data: dailyHitsData, isLoading: isLoadingDailyHits } = useQuery<any>({
+    queryKey: ["stats-hits-daily"],
     queryFn: async () => {
-      const res = await fetch(`${BASE_URL}/stats/browsers`, {
+      const res = await fetch(`${BASE_URL}/stats/hits?daily=true`, {
         headers: { Authorization: `Bearer ${API_KEY}` },
       });
       return res.json();
     },
   });
 
-  // Fetch System Stats
-  const { data: systemData, isLoading: isLoadingSystem } = useQuery<PropertyStats>({
-    queryKey: ["stats-systems"],
-    queryFn: async () => {
-      const res = await fetch(`${BASE_URL}/stats/systems`, {
-        headers: { Authorization: `Bearer ${API_KEY}` },
-      });
-      return res.json();
-    },
-  });
-
-  // Fetch Location Stats
-  const { data: locationData, isLoading: isLoadingLocation } = useQuery<PropertyStats>({
-    queryKey: ["stats-locations"],
-    queryFn: async () => {
-      const res = await fetch(`${BASE_URL}/stats/locations`, {
-        headers: { Authorization: `Bearer ${API_KEY}` },
-      });
-      return res.json();
-    },
-  });
-
-  const isLoading = isLoadingTotal || isLoadingHits || isLoadingBrowser || isLoadingSystem || isLoadingLocation || isLoadingDaily;
+  const isLoading = isLoadingTotal || isLoadingHits || isLoadingDaily || isLoadingDailyHits;
 
   // Process Font Analytics
-  const fontEvents = hitsData?.hits.filter(h => h.path.includes('font/')) || [];
+  const fontStats = (hitsData?.hits || [])
+    .filter(h => h.path.includes('font/'))
+    .reduce((acc: any, curr) => {
+      const cleanPath = curr.path.startsWith('/') ? curr.path.slice(1) : curr.path;
+      const parts = cleanPath.split('/');
+      const type = parts[1]; // download, embed, embed-view
+      const id = parts[2];
 
-  const fontStats = fontEvents.reduce((acc: any, curr) => {
-    // Handle both /font/ and font/
-    const cleanPath = curr.path.startsWith('/') ? curr.path.slice(1) : curr.path;
-    const parts = cleanPath.split('/');
+      if (!id) return acc;
+      if (!acc[id]) {
+        acc[id] = { id, downloads: 0, embeds: 0, views: 0, liveEmbeds: 0 };
+      }
 
-    // Expecting font/type/id
-    const type = parts[1]; // download, embed, embed-view
-    const id = parts[2];
+      if (type === 'download') acc[id].downloads += curr.count;
+      else if (type === 'embed') acc[id].embeds += curr.count;
+      else if (type === 'embed-view') acc[id].views += curr.count;
 
-    if (!id) return acc;
+      return acc;
+    }, {});
 
-    if (!acc[id]) {
-      acc[id] = { id, downloads: 0, embeds: 0, views: 0 };
-    }
-
-    if (type === 'download') acc[id].downloads += curr.count;
-    else if (type === 'embed') acc[id].embeds += curr.count;
-    else if (type === 'embed-view') acc[id].views += curr.count;
-
-    return acc;
-  }, {});
+  // Add "Live" stats (from last day of daily stats)
+  if (dailyHitsData?.hits) {
+    dailyHitsData.hits.forEach((h: any) => {
+      if (h.path.includes('font/embed')) {
+        const cleanPath = h.path.startsWith('/') ? h.path.slice(1) : h.path;
+        const parts = cleanPath.split('/');
+        const id = parts[2];
+        if (id && fontStats[id] && h.daily && h.daily.length > 0) {
+          // Last element is usually the most recent day
+          fontStats[id].liveEmbeds = h.daily[h.daily.length - 1].count;
+        }
+      }
+    });
+  }
 
   const fontStatsArray = Object.values(fontStats);
 
@@ -154,9 +145,25 @@ const Analytics = () => {
   const topPages = hitsData?.hits
     .filter(h => !h.path.includes('font/'))
     .sort((a, b) => b.count - a.count)
-    .slice(0, 5) || [];
+    .slice(0, 8) || [];
 
-  const COLORS = ["#22c55e", "#06b6d4", "#8b5cf6", "#f59e0b", "#ef4444", "#ec4899"];
+  const getFontGraphData = (id: string) => {
+    if (!dailyHitsData?.hits) return [];
+
+    const downloads = dailyHitsData.hits.find((h: any) => h.path.includes(`font/download/${id}`));
+    const embeds = dailyHitsData.hits.find((h: any) => h.path.includes(`font/embed/${id}`));
+
+    const days = new Set([
+      ...(downloads?.daily?.map((d: any) => d.day) || []),
+      ...(embeds?.daily?.map((d: any) => d.day) || [])
+    ]);
+
+    return Array.from(days).sort().slice(-3).map(day => ({
+      day: day.split('-').slice(1).join('/'), // format as MM/DD
+      downloads: downloads?.daily?.find((d: any) => d.day === day)?.count || 0,
+      embeds: embeds?.daily?.find((d: any) => d.day === day)?.count || 0,
+    }));
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground font-mono pb-20">
@@ -172,40 +179,7 @@ const Analytics = () => {
             <h1 className="text-3xl font-bold gradient-text uppercase tracking-tighter">System Analytics</h1>
             <p className="text-muted-foreground text-[10px]">{"// SECURE_ACCESS::ESTABLISHED"}</p>
           </div>
-          {isLoading && <Activity className="animate-spin text-primary ml-auto" size={16} />}
         </header>
-
-        {/* Traffic Chart */}
-        <div className="terminal-window mb-10 p-6 h-[250px]">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2 text-primary">
-              <Activity size={16} />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Traffic Timeline</span>
-            </div>
-            <span className="text-[9px] text-muted-foreground uppercase">Last 30 Days</span>
-          </div>
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={dailyData?.list || []}>
-              <defs>
-                <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis
-                dataKey="day"
-                hide
-              />
-              <YAxis hide />
-              <Tooltip
-                contentStyle={{ backgroundColor: "#020617", border: "1px solid #1e293b", fontSize: "10px", fontFamily: "JetBrains Mono" }}
-                itemStyle={{ color: "#22c55e" }}
-              />
-              <Area type="monotone" dataKey="count" stroke="#22c55e" fillOpacity={1} fill="url(#colorCount)" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
 
         {/* Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
@@ -218,86 +192,45 @@ const Analytics = () => {
             <div className="mt-2 text-[9px] text-muted-foreground">SINCE DEPLOYMENT</div>
           </div>
 
-          <div className="terminal-window p-6 border-accent/20">
+          <div className="terminal-window p-6 lg:col-span-2">
             <div className="flex items-center gap-3 mb-4 text-accent">
-              <MousePointer2 size={16} />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Active Paths</span>
+              <Activity size={16} />
+              <span className="text-[10px] font-bold uppercase tracking-widest">Traffic Overview</span>
             </div>
-            <div className="text-4xl font-bold">{isLoadingHits ? "..." : hitsData?.hits.length}</div>
-            <div className="mt-2 text-[9px] text-muted-foreground">REGISTERED ENDPOINTS</div>
-          </div>
-
-          <div className="terminal-window p-6 border-muted-foreground/20">
-            <div className="flex items-center gap-3 mb-4 text-muted-foreground">
-              <Globe size={16} />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Regions</span>
+            <div className="h-[60px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={dailyData?.list || []}>
+                  <Area type="monotone" dataKey="count" stroke="#06b6d4" fill="#06b6d4" fillOpacity={0.1} />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
-            <div className="text-4xl font-bold">{isLoadingLocation ? "..." : locationData?.list?.length || 0}</div>
-            <div className="mt-2 text-[9px] text-muted-foreground">UNIQUE ORIGINS</div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
-          {/* Top Pages Chart */}
-          <div className="terminal-window lg:col-span-2">
+        {/* Top Pages & System Stats */}
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-8 mb-10">
+          <div className="terminal-window">
             <div className="terminal-header">
               <Terminal size={12} className="text-primary" />
               <span className="text-[10px] font-bold uppercase tracking-tighter">Traffic::Top_Pages</span>
             </div>
-            <div className="p-6 h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={topPages} layout="vertical" margin={{ left: 40, right: 40 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
-                  <XAxis type="number" hide />
-                  <YAxis
-                    dataKey="path"
-                    type="category"
-                    tick={{ fill: "#94a3b8", fontSize: 10 }}
-                    width={100}
-                  />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: "#020617", border: "1px solid #1e293b", fontSize: "10px", fontFamily: "JetBrains Mono" }}
-                    itemStyle={{ color: "#22c55e" }}
-                    cursor={{ fill: 'rgba(34, 197, 94, 0.1)' }}
-                  />
-                  <Bar dataKey="count" fill="#22c55e" radius={[0, 4, 4, 0]} barSize={20} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Browser Distribution */}
-          <div className="terminal-window">
-            <div className="terminal-header">
-              <Monitor size={12} className="text-accent" />
-              <span className="text-[10px] font-bold uppercase tracking-tighter">Client::Browsers</span>
-            </div>
-            <div className="p-6 h-[300px] flex flex-col items-center justify-center">
-              <ResponsiveContainer width="100%" height="180">
-                <PieChart>
-                  <Pie
-                    data={browserData?.list?.slice(0, 5) || []}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={70}
-                    paddingAngle={5}
-                    dataKey="count"
-                  >
-                    {(browserData?.list || []).map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{ backgroundColor: "#020617", border: "1px solid #1e293b", fontSize: "10px", fontFamily: "JetBrains Mono" }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-2 mt-4 w-full px-4">
-                {(browserData?.list || []).slice(0, 4).map((s, i) => (
-                  <div key={s.name} className="flex items-center gap-2 overflow-hidden">
-                    <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                    <span className="text-[9px] text-muted-foreground uppercase truncate">{s.name}</span>
+            <div className="p-6">
+              <div className="space-y-4">
+                {topPages.map((page: any, idx) => (
+                  <div key={page.path} className="group">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] text-muted-foreground font-bold w-4">0{idx + 1}</span>
+                        <span className="text-xs font-bold group-hover:text-primary transition-colors">{page.path}</span>
+                      </div>
+                      <span className="text-[10px] font-bold text-primary">{page.count.toLocaleString()} hits</span>
+                    </div>
+                    <div className="w-full bg-surface-2 h-1 rounded-full overflow-hidden">
+                      <div
+                        className="bg-primary h-full transition-all duration-1000"
+                        style={{ width: `${(page.count / topPages[0].count) * 100}%` }}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -310,67 +243,129 @@ const Analytics = () => {
           <div className="flex items-center gap-4">
             <h2 className="text-xl font-bold uppercase tracking-tighter flex items-center gap-2">
               <Code size={20} className="text-primary" />
-              Font Analysis (Internal)
+              Font Analytics
             </h2>
             <div className="h-px flex-1 bg-border" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 gap-4">
             {fontStatsArray.length > 0 ? fontStatsArray.map((font: any) => (
-              <div key={font.id} className="terminal-window p-6 group hover:border-primary/40 transition-all">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-sm font-bold text-primary uppercase">{font.id}</span>
-                  <Activity size={14} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-all" />
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Download size={12} />
-                      <span className="text-[10px] uppercase">Downloads</span>
-                    </div>
-                    <span className="text-sm font-bold">{font.downloads}</span>
+              <div
+                key={font.id}
+                onClick={() => setSelectedFontId(font.id)}
+                className="terminal-window p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 group hover:border-primary/40 transition-all cursor-pointer"
+              >
+                <div className="flex items-center gap-4 min-w-[200px]">
+                  <div className="w-10 h-10 rounded-lg bg-surface-2 flex items-center justify-center border border-border group-hover:border-primary/50 transition-colors">
+                    <Type size={18} className="text-primary" />
                   </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Code size={12} />
-                      <span className="text-[10px] uppercase">Embeds</span>
-                    </div>
-                    <span className="text-sm font-bold">{font.embeds}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Globe size={12} />
-                      <span className="text-[10px] uppercase">Views</span>
-                    </div>
-                    <span className="text-sm font-bold">{font.views}</span>
+                  <div>
+                    <span className="text-sm font-bold uppercase tracking-tight">{font.id}</span>
+                    <p className="text-[9px] text-muted-foreground uppercase">Internal Registry</p>
                   </div>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-border/50">
-                  <div className="w-full bg-surface-2 h-1 rounded-full overflow-hidden">
-                    <div
-                      className="bg-primary h-full"
-                      style={{ width: `${Math.min(100, (font.downloads + font.embeds) * 10)}%` }}
-                    />
+                <div className="flex flex-wrap items-center gap-8 md:gap-16">
+                  <div className="space-y-1">
+                    <span className="text-[9px] text-muted-foreground uppercase block">Total Downloads</span>
+                    <div className="flex items-center gap-2">
+                      <Download size={12} className="text-primary" />
+                      <span className="text-sm font-bold">{font.downloads.toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-[9px] text-muted-foreground uppercase block">Live Embedded</span>
+                    <div className="flex items-center gap-2">
+                      <Activity size={12} className="text-accent" />
+                      <span className="text-sm font-bold">{font.liveEmbeds.toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  <div className="hidden md:block">
+                    <ChevronRight size={16} className="text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
                   </div>
                 </div>
               </div>
             )) : (
-              <div className="col-span-full py-16 text-center terminal-window border-dashed bg-transparent">
+              <div className="py-16 text-center terminal-window border-dashed bg-transparent">
                 <div className="flex flex-col items-center gap-3">
                   <Activity size={32} className="text-muted-foreground/20" />
-                  <div>
-                    <p className="text-muted-foreground text-xs uppercase tracking-widest font-bold">No telemetry data</p>
-                    <p className="text-[9px] mt-1 text-muted-foreground/50">AWAITING SYSTEM INTERACTION</p>
-                  </div>
+                  <p className="text-muted-foreground text-xs uppercase tracking-widest font-bold">No telemetry data</p>
                 </div>
               </div>
             )}
           </div>
         </div>
+
+        {/* Font Popup */}
+        {selectedFontId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in">
+            <div className="terminal-window max-w-2xl w-full shadow-2xl overflow-hidden">
+              <div className="terminal-header flex items-center justify-between bg-surface-2">
+                <div className="flex items-center gap-2">
+                  <BarChart3 size={14} className="text-primary" />
+                  <span className="text-xs font-mono font-bold uppercase">{selectedFontId} :: Analytics</span>
+                </div>
+                <button
+                  onClick={() => setSelectedFontId(null)}
+                  className="p-1 hover:bg-surface-3 rounded-md transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="p-8">
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-2xl font-bold uppercase tracking-tighter">{selectedFontId}</h3>
+                  <div className="flex gap-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-primary" />
+                      <span className="text-[10px] text-muted-foreground uppercase">Downloads</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-accent" />
+                      <span className="text-[10px] text-muted-foreground uppercase">Embeds</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="h-[250px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={getFontGraphData(selectedFontId)}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                      <XAxis
+                        dataKey="day"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: "#64748b", fontSize: 10 }}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: "#64748b", fontSize: 10 }}
+                      />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: "#020617", border: "1px solid #1e293b", borderRadius: "8px" }}
+                        itemStyle={{ fontSize: "10px", textTransform: "uppercase" }}
+                      />
+                      <Bar dataKey="downloads" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="embeds" fill="#06b6d4" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="mt-8 pt-8 border-t border-border flex justify-end">
+                  <button
+                    onClick={() => setSelectedFontId(null)}
+                    className="px-6 py-2 rounded-xl bg-surface-2 border border-border hover:bg-surface-3 transition-colors text-xs font-bold uppercase"
+                  >
+                    Close Terminal
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Technical Footer */}
         <footer className="mt-20 pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
