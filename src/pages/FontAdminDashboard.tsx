@@ -48,8 +48,19 @@ const FontAdminDashboard = () => {
       supabase.from("font_api_keys").select("*").order("created_at", { ascending: false }),
       supabase.from("profiles").select("user_id, email"),
     ]);
-    if (keysRes.data) setApiKeys(keysRes.data);
-    if (usersRes.data) setUsers(usersRes.data);
+
+    if (keysRes.error) {
+      console.error("Error fetching API keys:", keysRes.error.message);
+    } else if (keysRes.data) {
+      setApiKeys(keysRes.data);
+    }
+
+    if (usersRes.error) {
+      console.error("Error fetching profiles:", usersRes.error.message);
+    } else if (usersRes.data) {
+      setUsers(usersRes.data);
+    }
+
     setLoading(false);
   };
 
