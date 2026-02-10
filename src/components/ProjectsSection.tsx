@@ -71,7 +71,7 @@ export const ProjectsSection = () => {
                 </div>
 
                 <div className="flex-1 min-w-0 pt-1">
-                  <h3 className={`text-xl font-bold text-foreground mb-1 group-hover:text-primary transition-colors ${project.isBangla ? 'font-bangla' : ''}`}>
+                  <h3 className={`text-xl font-bold text-foreground mb-1 group-hover:text-primary transition-colors ${project.title === 'গ্রামরক্তি' ? 'font-bangla' : 'font-mono'}`}>
                     {project.title}
                   </h3>
                   <div className="flex items-center gap-2 text-xs font-mono text-primary/70">
