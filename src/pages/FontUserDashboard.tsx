@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Key, Copy, Check, LogOut, Loader2, Info } from "lucide-react";
+import { ArrowLeft, Key, Copy, Check, LogOut, Loader2, Info, Crown } from "lucide-react";
+
+interface FontPermission {
+  api_key_id: string;
+  font_id: string;
+}
 
 interface ApiKey {
   id: string;
@@ -12,9 +17,14 @@ interface ApiKey {
   last_used_at: string | null;
 }
 
+const PREMIUM_FONT_NAMES: Record<string, string> = {
+  july: "July",
+};
+
 const FontUserDashboard = () => {
   const navigate = useNavigate();
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const [fontPerms, setFontPerms] = useState<FontPermission[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState("");
@@ -29,12 +39,19 @@ const FontUserDashboard = () => {
 
     setUserEmail(user.email || "");
 
-    // Check if admin — redirect to admin dashboard
     const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
     if (roles?.some(r => r.role === "admin")) { navigate("/F/A"); return; }
 
     const { data: keys } = await supabase.from("font_api_keys").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
-    if (keys) setApiKeys(keys);
+    if (keys) {
+      setApiKeys(keys);
+      // Fetch font permissions for user's keys
+      if (keys.length > 0) {
+        const keyIds = keys.map(k => k.id);
+        const { data: perms } = await supabase.from("font_api_key_fonts").select("api_key_id, font_id").in("api_key_id", keyIds);
+        if (perms) setFontPerms(perms);
+      }
+    }
     setLoading(false);
   };
 
@@ -48,6 +65,8 @@ const FontUserDashboard = () => {
     await supabase.auth.signOut();
     navigate("/F/L");
   };
+
+  const getFontsForKey = (keyId: string) => fontPerms.filter(p => p.api_key_id === keyId);
 
   if (loading) {
     return (
@@ -97,38 +116,72 @@ const FontUserDashboard = () => {
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {apiKeys.map((key) => (
-                <div key={key.id} className="p-4 md:p-6 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold">{key.label}</span>
-                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${key.is_active ? "text-primary bg-primary/10 border-primary/20" : "text-destructive bg-destructive/10 border-destructive/20"}`}>
-                        {key.is_active ? "ACTIVE" : "DISABLED"}
+              {apiKeys.map((key) => {
+                const keyFonts = getFontsForKey(key.id);
+                return (
+                  <div key={key.id} className="p-4 md:p-6 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold">{key.label}</span>
+                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${key.is_active ? "text-primary bg-primary/10 border-primary/20" : "text-destructive bg-destructive/10 border-destructive/20"}`}>
+                          {key.is_active ? "ACTIVE" : "DISABLED"}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-mono text-muted-foreground">
+                        Created: {new Date(key.created_at).toLocaleDateString()}
                       </span>
                     </div>
-                    <span className="text-[10px] font-mono text-muted-foreground">
-                      Created: {new Date(key.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 text-xs font-mono text-accent bg-accent/5 px-3 py-2 rounded-lg border border-accent/10 truncate">
-                      {key.api_key}
-                    </code>
-                    <button onClick={() => handleCopy(key.api_key, key.id)} className="p-2 rounded-lg hover:bg-surface-2 transition-colors shrink-0">
-                      {copied === key.id ? <Check size={16} className="text-primary" /> : <Copy size={16} className="text-muted-foreground" />}
-                    </button>
-                  </div>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 text-xs font-mono text-accent bg-accent/5 px-3 py-2 rounded-lg border border-accent/10 truncate">
+                        {key.api_key}
+                      </code>
+                      <button onClick={() => handleCopy(key.api_key, key.id)} className="p-2 rounded-lg hover:bg-surface-2 transition-colors shrink-0">
+                        {copied === key.id ? <Check size={16} className="text-primary" /> : <Copy size={16} className="text-muted-foreground" />}
+                      </button>
+                    </div>
 
-                  {/* Usage example */}
-                  <div className="mt-4 p-4 bg-surface-1 rounded-xl border border-border">
-                    <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-2">Usage</p>
-                    <pre className="text-xs font-mono text-muted-foreground overflow-x-auto">
+                    {/* Permitted fonts */}
+                    <div className="flex flex-wrap gap-2 pt-2 border-t border-border/50">
+                      <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest self-center mr-2">Permitted fonts:</span>
+                      {keyFonts.length === 0 ? (
+                        <span className="text-[10px] font-mono text-muted-foreground/50">No fonts assigned</span>
+                      ) : (
+                        keyFonts.map(perm => (
+                          <span key={perm.font_id} className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-mono bg-primary/10 border border-primary/30 text-primary">
+                            <Crown size={10} />
+                            {PREMIUM_FONT_NAMES[perm.font_id] || perm.font_id}
+                          </span>
+                        ))
+                      )}
+                    </div>
+
+                    {/* Usage examples per font */}
+                    {keyFonts.length > 0 && (
+                      <div className="mt-4 space-y-3">
+                        {keyFonts.map(perm => (
+                          <div key={perm.font_id} className="p-4 bg-surface-1 rounded-xl border border-border">
+                            <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-2">
+                              Usage — {PREMIUM_FONT_NAMES[perm.font_id] || perm.font_id}
+                            </p>
+                            <div className="relative group">
+                              <pre className="text-xs font-mono text-muted-foreground overflow-x-auto">
 {`<link rel="stylesheet" 
-  href="https://abdullah.ami.bd/api/validate-font-key?key=${key.api_key}">`}
-                    </pre>
+  href="https://abdullah.ami.bd/api/validate-font-key?key=${key.api_key}&font=${perm.font_id}">`}
+                              </pre>
+                              <button
+                                onClick={() => handleCopy(`<link rel="stylesheet" href="https://abdullah.ami.bd/api/validate-font-key?key=${key.api_key}&font=${perm.font_id}">`, `usage-${key.id}-${perm.font_id}`)}
+                                className="absolute right-2 top-2 p-1 rounded hover:bg-surface-2 transition-colors opacity-0 group-hover:opacity-100"
+                              >
+                                {copied === `usage-${key.id}-${perm.font_id}` ? <Check size={12} className="text-primary" /> : <Copy size={12} className="text-muted-foreground" />}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

@@ -6,7 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const JULY_CSS = `@font-face {
+const FONT_CSS: Record<string, string> = {
+  july: `@font-face {
   font-family: 'July';
   src: url('https://abdullah.ami.bd/fonts/July-Regular.ttf') format('truetype');
   font-weight: 400;
@@ -36,7 +37,8 @@ const JULY_CSS = `@font-face {
   font-weight: 700;
   font-style: italic;
   font-display: swap;
-}`;
+}`,
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -46,10 +48,18 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     const apiKey = url.searchParams.get("key");
+    const fontId = url.searchParams.get("font") || "july";
 
     if (!apiKey) {
       return new Response("/* ERROR: API key required. Get one at https://abdullah.ami.bd/F */", {
         status: 401,
+        headers: { ...corsHeaders, "Content-Type": "text/css" },
+      });
+    }
+
+    if (!FONT_CSS[fontId]) {
+      return new Response(`/* ERROR: Unknown font '${fontId}' */`, {
+        status: 404,
         headers: { ...corsHeaders, "Content-Type": "text/css" },
       });
     }
@@ -79,13 +89,28 @@ serve(async (req) => {
       });
     }
 
+    // Check if this key has permission for the requested font
+    const { data: fontPerm } = await supabase
+      .from("font_api_key_fonts")
+      .select("id")
+      .eq("api_key_id", keyRecord.id)
+      .eq("font_id", fontId)
+      .single();
+
+    if (!fontPerm) {
+      return new Response(`/* ERROR: Your API key does not have access to the '${fontId}' font. Contact admin. */`, {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "text/css" },
+      });
+    }
+
     // Update last_used_at
     await supabase
       .from("font_api_keys")
       .update({ last_used_at: new Date().toISOString() })
       .eq("id", keyRecord.id);
 
-    return new Response(JULY_CSS, {
+    return new Response(FONT_CSS[fontId], {
       status: 200,
       headers: {
         ...corsHeaders,

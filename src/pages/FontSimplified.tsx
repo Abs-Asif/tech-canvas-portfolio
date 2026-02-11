@@ -219,8 +219,9 @@ const FontSimplified = () => {
                     <h3 className="text-lg font-bold group-hover:text-primary transition-colors truncate flex items-center gap-2">
                       {font.name}
                       {font.isPremium && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
-                          <Crown size={10} /> PREMIUM
+                        <span className="inline-flex items-center gap-0.5 text-[9px] font-mono px-1.5 py-0.5 rounded bg-primary/15 text-primary border border-primary/25 ml-1">
+                          <Crown size={9} />
+                          PRO
                         </span>
                       )}
                     </h3>
@@ -260,8 +261,9 @@ const FontSimplified = () => {
                     <h2 className="text-4xl md:text-6xl font-bold mb-4 flex items-center gap-3">
                       {selectedFont.name}
                       {selectedFont.isPremium && (
-                        <span className="inline-flex items-center gap-1 text-sm font-mono px-3 py-1 rounded-full bg-accent/10 text-accent border border-accent/20">
-                          <Crown size={14} /> PREMIUM
+                        <span className="inline-flex items-center gap-1 text-xs font-mono px-2.5 py-1 rounded-md bg-primary/15 text-primary border border-primary/25">
+                          <Crown size={12} />
+                          PRO
                         </span>
                       )}
                     </h2>
@@ -549,14 +551,14 @@ const FontSimplified = () => {
                               <pre className="bg-surface-1 p-6 rounded-xl text-xs font-mono overflow-x-auto border border-border text-muted-foreground leading-relaxed">
 {selectedFont.isPremium
   ? `<link rel="preconnect" href="https://abdullah.ami.bd">
-<link rel="stylesheet" href="https://abdullah.ami.bd/api/validate-font-key?key=YOUR_API_KEY">`
+<link rel="stylesheet" href="https://abdullah.ami.bd/api/validate-font-key?key=YOUR_API_KEY&font=${selectedFont.id}">`
   : `<link rel="preconnect" href="https://abdullah.ami.bd">
 <link rel="stylesheet" href="https://abdullah.ami.bd/fonts/${selectedFont.id}.css">`}
                               </pre>
                               <button
                                 onClick={() => handleCopy(
                                   selectedFont.isPremium
-                                    ? `<link rel="preconnect" href="https://abdullah.ami.bd">\n<link rel="stylesheet" href="https://abdullah.ami.bd/api/validate-font-key?key=YOUR_API_KEY">`
+                                    ? `<link rel="preconnect" href="https://abdullah.ami.bd">\n<link rel="stylesheet" href="https://abdullah.ami.bd/api/validate-font-key?key=YOUR_API_KEY&font=${selectedFont.id}">`
                                     : `<link rel="preconnect" href="https://abdullah.ami.bd">\n<link rel="stylesheet" href="https://abdullah.ami.bd/fonts/${selectedFont.id}.css">`,
                                   'link'
                                 )}
