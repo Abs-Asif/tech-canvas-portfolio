@@ -178,7 +178,7 @@ body {
                 <div className="relative group">
                   <pre className="bg-surface-1 p-6 rounded-xl text-xs font-mono overflow-x-auto border border-border text-muted-foreground leading-relaxed">
 {`<link rel="stylesheet" 
-  href="${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-font-key?key=YOUR_API_KEY">
+  href="https://abdullah.ami.bd/api/validate-font-key?key=YOUR_API_KEY">
 
 /* Then use in CSS: */
 .my-text {
@@ -187,7 +187,7 @@ body {
 }`}
                   </pre>
                   <button
-                    onClick={() => handleCopy(`<link rel="stylesheet" href="${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-font-key?key=YOUR_API_KEY">`, 'premium-embed')}
+                    onClick={() => handleCopy(`<link rel="stylesheet" href="https://abdullah.ami.bd/api/validate-font-key?key=YOUR_API_KEY">`, 'premium-embed')}
                     className="absolute right-4 top-4 p-2 rounded-lg bg-surface-1 border border-border opacity-0 group-hover:opacity-100 transition-all hover:border-accent"
                   >
                     {copied === 'premium-embed' ? <Check size={16} className="text-primary" /> : <Copy size={16} />}

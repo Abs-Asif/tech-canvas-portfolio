@@ -124,7 +124,7 @@ const FontUserDashboard = () => {
                     <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-2">Usage</p>
                     <pre className="text-xs font-mono text-muted-foreground overflow-x-auto">
 {`<link rel="stylesheet" 
-  href="https://abdullah.ami.bd/fonts/july.css?key=${key.api_key}">`}
+  href="https://abdullah.ami.bd/api/validate-font-key?key=${key.api_key}">`}
                     </pre>
                   </div>
                 </div>
