@@ -14,6 +14,32 @@ export type Database = {
   }
   public: {
     Tables: {
+      font_api_key_fonts: {
+        Row: {
+          api_key_id: string
+          font_id: string
+          id: string
+        }
+        Insert: {
+          api_key_id: string
+          font_id: string
+          id?: string
+        }
+        Update: {
+          api_key_id?: string
+          font_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "font_api_key_fonts_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "font_api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       font_api_keys: {
         Row: {
           api_key: string
