@@ -549,14 +549,14 @@ const FontSimplified = () => {
                               <pre className="bg-surface-1 p-6 rounded-xl text-xs font-mono overflow-x-auto border border-border text-muted-foreground leading-relaxed">
 {selectedFont.isPremium
   ? `<link rel="preconnect" href="https://abdullah.ami.bd">
-<link rel="stylesheet" href="${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-font-key?key=YOUR_API_KEY">`
+<link rel="stylesheet" href="https://abdullah.ami.bd/api/validate-font-key?key=YOUR_API_KEY">`
   : `<link rel="preconnect" href="https://abdullah.ami.bd">
 <link rel="stylesheet" href="https://abdullah.ami.bd/fonts/${selectedFont.id}.css">`}
                               </pre>
                               <button
                                 onClick={() => handleCopy(
                                   selectedFont.isPremium
-                                    ? `<link rel="preconnect" href="https://abdullah.ami.bd">\n<link rel="stylesheet" href="${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-font-key?key=YOUR_API_KEY">`
+                                    ? `<link rel="preconnect" href="https://abdullah.ami.bd">\n<link rel="stylesheet" href="https://abdullah.ami.bd/api/validate-font-key?key=YOUR_API_KEY">`
                                     : `<link rel="preconnect" href="https://abdullah.ami.bd">\n<link rel="stylesheet" href="https://abdullah.ami.bd/fonts/${selectedFont.id}.css">`,
                                   'link'
                                 )}
