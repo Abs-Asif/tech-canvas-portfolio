@@ -13,10 +13,6 @@ import {
   Cell,
   PieChart,
   Pie,
-  LineChart,
-  Line,
-  AreaChart,
-  Area,
 } from "recharts";
 
 const API_KEY = import.meta.env.VITE_GOATCOUNTER_API_KEY;
@@ -190,20 +186,6 @@ const Analytics = () => {
             </div>
             <div className="text-4xl font-bold">{isLoadingTotal ? "..." : totalData?.total.toLocaleString()}</div>
             <div className="mt-2 text-[9px] text-muted-foreground">SINCE DEPLOYMENT</div>
-          </div>
-
-          <div className="terminal-window p-6 lg:col-span-2">
-            <div className="flex items-center gap-3 mb-4 text-accent">
-              <Activity size={16} />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Traffic Overview</span>
-            </div>
-            <div className="h-[60px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={dailyData?.list || []}>
-                  <Area type="monotone" dataKey="count" stroke="#06b6d4" fill="#06b6d4" fillOpacity={0.1} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
           </div>
         </div>
 

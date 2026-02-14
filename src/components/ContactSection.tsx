@@ -5,26 +5,30 @@ const contactLinks = [
   {
     icon: Mail,
     label: "Email",
-    value: "abdullah.bari.2028@gmail.com",
-    href: "mailto:abdullah.bari.2028@gmail.com",
+    value: "contact@abdullah.ami.bd",
+    href: "mailto:contact@abdullah.ami.bd",
+    fullWidth: true,
   },
   {
     icon: Phone,
     label: "Direct Call",
     value: "09638250306",
     href: "tel:09638250306",
+    fullWidth: true,
   },
   {
     icon: Phone,
     label: "Direct Call",
     value: "01738745285",
     href: "tel:01738745285",
+    fullWidth: false,
   },
   {
     icon: Phone,
     label: "Direct Call",
     value: "01538310838",
     href: "tel:01538310838",
+    fullWidth: false,
   },
 ];
 
@@ -54,11 +58,13 @@ export const ContactSection = () => {
           </p>
         </div>
 
-        <div id="contact-grid" className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+        <div id="contact-grid" className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
           {contactLinks.map((link, index) => (
             <div
               key={`${link.label}-${link.value}`}
-              className="animate-fade-in-up opacity-0 group"
+              className={`animate-fade-in-up opacity-0 group ${
+                link.fullWidth ? "col-span-2 sm:col-span-1" : "col-span-1 sm:col-span-1"
+              }`}
               style={{ animationDelay: `${(index + 1) * 100}ms`, animationFillMode: 'forwards' }}
             >
               <a
@@ -76,7 +82,7 @@ export const ContactSection = () => {
 
           {/* Facebook */}
           <div
-            className="animate-fade-in-up opacity-0 group"
+            className="animate-fade-in-up opacity-0 group col-span-2 sm:col-span-1"
             style={{ animationDelay: "500ms", animationFillMode: 'forwards' }}
           >
             <a
