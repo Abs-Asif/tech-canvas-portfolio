@@ -67,13 +67,23 @@ const Automation = () => {
 
   const parseJsonFromAi = (text: string) => {
     try {
-      // Try to find JSON block in markdown
-      const jsonMatch = text.match(/```json\n?([\s\S]*?)\n?```/) || text.match(/{[\s\S]*}/) || text.match(/\[[\s\S]*\]/);
-      const jsonStr = jsonMatch ? jsonMatch[0] : text;
-      return JSON.parse(jsonStr.replace(/```json|```/g, "").trim());
+      // 1. Try to find JSON block in markdown (```json ... ```)
+      const markdownMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
+      if (markdownMatch) {
+        return JSON.parse(markdownMatch[1].trim());
+      }
+
+      // 2. If no markdown block, try to find the outermost array or object
+      const jsonMatch = text.match(/\[[\s\S]*\]/) || text.match(/{[\s\S]*}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0].trim());
+      }
+
+      // 3. Fallback to parsing the whole text
+      return JSON.parse(text.trim());
     } catch (e) {
       console.error("Failed to parse JSON from AI response:", text);
-      throw new Error("Failed to parse AI response as JSON.");
+      throw new Error("Failed to parse AI response as JSON. Please try again.");
     }
   };
 
@@ -108,7 +118,9 @@ const Automation = () => {
     try {
       // Step 1: Get 10 words from AI
       addLog("Step 1: Requesting 10 unique words from AI (Qwen)...", "info");
-      const firstPrompt = "I'm running an educational Facebook page, where i post 10 A1, A2 and B1 level words. Please give me 10 unique words. Don't add your comments like 'Here is your 10 words' or 'Do you need anything else'. Just give me the 10 words. In json format. Please don't add your comments. Just json formated 10 words are my demand";
+      const firstPrompt = `Return ONLY a valid JSON array of 10 unique English words (A1, A2, and B1 levels).
+NO introductory or concluding text. NO conversational filler.
+Example format: ["word1", "word2", ..., "word10"]`;
       const wordsResponse = await fetchOpenRouter(firstPrompt);
       addLog("Words received from AI.", "success");
 
@@ -136,7 +148,16 @@ const Automation = () => {
 
       // Step 3: Translate and refine with AI
       addLog("Step 3: Sending enriched data for Bangla translation...", "info");
-      const secondPrompt = `Here, I've provided you a list of worlds with there meaning, parts of speech and use example. Please answer me by just modifying the meaning to Bangla (not just translation). Also add the translation of the example sentence. And return me in a json format (holding the word's themselves, their bangla meaning, parts of speech in english, Use example in engliah, bangla translation of the use example sentence). Don't add your comments like 'Here is your 10 words' or 'Do you need anything else'. Just give me what i asked for. In json format. Please don't add your comments. Just json. Data: ${JSON.stringify(enrichedWords)}`;
+      const secondPrompt = `Return ONLY a valid JSON array of objects. NO introductory or concluding text. NO conversational filler.
+
+Each object in the array must have these EXACT keys:
+- "word": (string) The English word provided.
+- "banglaMeaning": (string) A refined Bangla meaning/definition (not just a literal translation).
+- "partOfSpeech": (string) The part of speech in English.
+- "example": (string) The English example sentence provided.
+- "exampleBangla": (string) Bangla translation of the example sentence.
+
+Input Data: ${JSON.stringify(enrichedWords)}`;
 
       const translationResponse = await fetchOpenRouter(secondPrompt);
       addLog("Translation received from AI.", "success");
@@ -252,7 +273,7 @@ const Automation = () => {
                 <div className="w-2 h-2 rounded-full bg-border" />
               </div>
             </div>
-            <div className="p-4 bg-black/40 font-mono text-xs md:text-sm h-48 overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-primary/20">
+            <div className="p-4 bg-black/40 font-mono text-xs md:text-sm space-y-2">
               {logs.map((log, i) => (
                 <div key={i} className={cn(
                   "flex gap-2",
