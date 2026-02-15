@@ -21,6 +21,7 @@ const Automation = () => {
   const navigate = useNavigate();
   const [view, setView] = useState<"start" | "records">("start");
   const [logs, setLogs] = useState<{ message: string; type: "info" | "success" | "error" | "process" }[]>([]);
+  const [rawLogs, setRawLogs] = useState<{ label: string; content: any }[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentResult, setCurrentResult] = useState<WordData[] | null>(null);
   const [records, setRecords] = useState<AutomationRecord[]>([]);
@@ -112,6 +113,7 @@ const Automation = () => {
 
     setIsProcessing(true);
     setLogs([]);
+    setRawLogs([]);
     setCurrentResult(null);
     addLog("Initializing automation sequence...", "process");
 
@@ -121,8 +123,13 @@ const Automation = () => {
       const firstPrompt = `Return ONLY a valid JSON array of 10 unique English words (C1 and C2 levels).
 NO introductory or concluding text. NO conversational filler.
 Example format: ["word1", "word2", ..., "word10"]`;
+
+      setRawLogs(prev => [...prev, { label: "STEP_1_PROMPT", content: firstPrompt }]);
+
       const wordsResponse = await fetchOpenRouter(firstPrompt);
       addLog("Words received from AI.", "success");
+
+      setRawLogs(prev => [...prev, { label: "STEP_1_RAW_RESPONSE", content: wordsResponse }]);
 
       const wordsList = parseJsonFromAi(wordsResponse);
       const wordsArray = Array.isArray(wordsList) ? wordsList : wordsList.words || [];
@@ -152,6 +159,8 @@ Example format: ["word1", "word2", ..., "word10"]`;
 
       if (enrichedWords.length === 0) throw new Error("Could not fetch data for any of the words.");
 
+      setRawLogs(prev => [...prev, { label: "STEP_2_ENRICHED_DATA", content: enrichedWords }]);
+
       // Step 3: Translate and refine with AI
       addLog("Step 3: Sending enriched data for Bangla translation and refinement...", "info");
       const secondPrompt = `Return ONLY a valid JSON array of objects. NO introductory or concluding text. NO conversational filler.
@@ -167,19 +176,27 @@ Special Instruction: IF there is no example of the word provided to you, then ma
 
 Input Data: ${JSON.stringify(enrichedWords)}`;
 
+      setRawLogs(prev => [...prev, { label: "STEP_3_PROMPT", content: secondPrompt }]);
+
       const translationResponse = await fetchOpenRouter(secondPrompt);
       addLog("Translation received from AI.", "success");
 
+      setRawLogs(prev => [...prev, { label: "STEP_3_RAW_RESPONSE", content: translationResponse }]);
+
       const finalJson = parseJsonFromAi(translationResponse);
+
+      setRawLogs(prev => [...prev, { label: "STEP_3_PARSED_JSON", content: finalJson }]);
 
       // Map keys if necessary (AI might name keys differently)
       const formattedResult: WordData[] = finalJson.map((item: any) => ({
         word: item.word || item.english_word || "",
-        banglaMeaning: item.bangla_meaning || item.meaning_bangla || item.meaning || "",
-        partOfSpeech: item.part_of_speech || item.pos || "",
-        example: item.use_example || item.example || item.example_en || "",
-        exampleBangla: item.bangla_translation_of_example || item.example_bn || item.example_bangla || ""
+        banglaMeaning: item.banglaMeaning || item.bangla_meaning || item.meaning_bangla || item.meaning || "",
+        partOfSpeech: item.partOfSpeech || item.part_of_speech || item.pos || "",
+        example: item.example || item.use_example || item.example_en || "",
+        exampleBangla: item.exampleBangla || item.bangla_translation_of_example || item.example_bn || item.example_bangla || ""
       }));
+
+      setRawLogs(prev => [...prev, { label: "FINAL_FORMATTED_RESULT", content: formattedResult }]);
 
       setCurrentResult(formattedResult);
       addLog("Automation sequence completed successfully!", "success");
@@ -270,7 +287,7 @@ Input Data: ${JSON.stringify(enrichedWords)}`;
 
         {/* Live Logs */}
         {logs.length > 0 && view === "start" && (
-          <div className="terminal-window mb-10">
+          <div className="terminal-window mb-6">
             <div className="terminal-header flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Terminal size={14} className="text-primary" />
@@ -292,6 +309,31 @@ Input Data: ${JSON.stringify(enrichedWords)}`;
                 )}>
                   <span className="shrink-0">{">"}</span>
                   <span>{log.message}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Raw Logs Audit */}
+        {rawLogs.length > 0 && view === "start" && (
+          <div className="terminal-window mb-10 border-amber-500/30">
+            <div className="terminal-header flex items-center justify-between bg-amber-500/10">
+              <div className="flex items-center gap-2">
+                <AlertCircle size={14} className="text-amber-500" />
+                <span className="text-xs font-mono font-bold text-amber-500">RAW_AUDIT_LOGS</span>
+              </div>
+            </div>
+            <div className="p-4 bg-black/60 font-mono text-[10px] space-y-4 max-h-[500px] overflow-y-auto">
+              {rawLogs.map((log, i) => (
+                <div key={i} className="space-y-1 border-b border-border/30 pb-4 last:border-0">
+                  <div className="text-amber-500/70 font-bold flex items-center gap-2">
+                    <span className="bg-amber-500/20 px-1 rounded text-[8px]">LOG_{i + 1}</span>
+                    {log.label}
+                  </div>
+                  <pre className="text-muted-foreground whitespace-pre-wrap break-all bg-black/20 p-2 rounded border border-border/10 overflow-x-auto">
+                    {typeof log.content === "string" ? log.content : JSON.stringify(log.content, null, 2)}
+                  </pre>
                 </div>
               ))}
             </div>
