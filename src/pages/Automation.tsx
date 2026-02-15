@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Play, History, Loader2, AlertCircle, Terminal, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Play, History, Loader2, AlertCircle, Terminal, CheckCircle2, Download, Image as ImageIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +17,56 @@ interface WordData {
   exampleBangla: string;
 }
 
+const drawJustifiedText = (
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  lineHeight: number
+) => {
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let currentLine = words[0];
+
+  for (let i = 1; i < words.length; i++) {
+    const word = words[i];
+    const width = ctx.measureText(currentLine + " " + word).width;
+    if (width < maxWidth) {
+      currentLine += " " + word;
+    } else {
+      lines.push(currentLine);
+      currentLine = word;
+    }
+  }
+  lines.push(currentLine);
+
+  let currentY = y;
+  lines.forEach((line, index) => {
+    const isLastLine = index === lines.length - 1;
+    const lineWords = line.split(' ');
+
+    if (isLastLine || lineWords.length === 1) {
+      ctx.textAlign = 'left';
+      ctx.fillText(line, x, currentY);
+    } else {
+      const totalWordsWidth = lineWords.reduce((acc, w) => acc + ctx.measureText(w).width, 0);
+      const totalSpacing = maxWidth - totalWordsWidth;
+      const spacingPerWord = totalSpacing / (lineWords.length - 1);
+
+      let currentX = x;
+      ctx.textAlign = 'left';
+      lineWords.forEach((word) => {
+        ctx.fillText(word, currentX, currentY);
+        currentX += ctx.measureText(word).width + spacingPerWord;
+      });
+    }
+    currentY += lineHeight;
+  });
+
+  return currentY;
+};
+
 const Automation = () => {
   const navigate = useNavigate();
   const [view, setView] = useState<"start" | "records">("start");
@@ -25,6 +75,85 @@ const Automation = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentResult, setCurrentResult] = useState<WordData[] | null>(null);
   const [records, setRecords] = useState<AutomationRecord[]>([]);
+  const [isConverting, setIsConverting] = useState(false);
+  const [generatedImages, setGeneratedImages] = useState<{ word: string; url: string }[]>([]);
+
+  const generateImage = (wordData: WordData): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1000;
+      canvas.height = 1000;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error("Could not get canvas context"));
+        return;
+      }
+
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = '/template.png';
+
+      img.onload = async () => {
+        try {
+          // Ensure fonts are loaded
+          await Promise.all([
+            document.fonts.load('bold 72px "JetBrains Mono"'),
+            document.fonts.load('40px Kalpurush'),
+            document.fonts.load('36px Inter')
+          ]);
+
+          // Draw background
+          ctx.drawImage(img, 0, 0, 1000, 1000);
+
+          ctx.fillStyle = 'black';
+
+          // 1. Word (centered)
+          ctx.font = 'bold 72px "JetBrains Mono"';
+          ctx.textAlign = 'center';
+          ctx.fillText(wordData.word, 500, 180);
+
+          // 2. POS (centered, bracketed)
+          ctx.font = 'italic 36px "JetBrains Mono"';
+          ctx.textAlign = 'center';
+          const pos = wordData.partOfSpeech ? (wordData.partOfSpeech.charAt(0).toUpperCase() + wordData.partOfSpeech.slice(1)) : "";
+          ctx.fillText(`(${pos})`, 500, 240);
+
+          // CONTENT BOX START
+          let currentY = 350;
+          const boxLeft = 150;
+          const boxWidth = 700;
+
+          // 3. Bangla Meaning (Justified, Kalpurush)
+          ctx.font = '40px Kalpurush';
+          currentY = drawJustifiedText(ctx, wordData.banglaMeaning, boxLeft, currentY, boxWidth, 55);
+
+          currentY += 40; // Section Gap
+
+          // 4. Example Label
+          ctx.font = 'bold 30px "JetBrains Mono"';
+          ctx.textAlign = 'left';
+          ctx.fillText('Example:', boxLeft, currentY);
+          currentY += 45;
+
+          // English Example (Justified, Inter/Sans)
+          ctx.font = '36px Inter';
+          currentY = drawJustifiedText(ctx, wordData.example, boxLeft, currentY, boxWidth, 45);
+
+          currentY += 20; // Small gap
+
+          // 5. Bangla Translation (Justified, Kalpurush)
+          ctx.font = '36px Kalpurush';
+          currentY = drawJustifiedText(ctx, wordData.exampleBangla, boxLeft, currentY, boxWidth, 45);
+
+          resolve(canvas.toDataURL('image/png'));
+        } catch (err) {
+          reject(err);
+        }
+      };
+
+      img.onerror = () => reject(new Error("Failed to load template image"));
+    });
+  };
 
   useEffect(() => {
     const savedRecords = localStorage.getItem("automation_records");
@@ -115,6 +244,7 @@ const Automation = () => {
     setLogs([]);
     setRawLogs([]);
     setCurrentResult(null);
+    setGeneratedImages([]);
     addLog("Initializing automation sequence...", "process");
 
     try {
@@ -228,6 +358,43 @@ Input Data: ${JSON.stringify(enrichedWords)}`;
   const clearRecords = () => {
     localStorage.removeItem("automation_records");
     setRecords([]);
+  };
+
+  const handleConvert = async () => {
+    if (!currentResult || isConverting) return;
+    setIsConverting(true);
+    setGeneratedImages([]);
+    addLog("Starting image conversion process...", "process");
+
+    try {
+      const results = [];
+      for (let i = 0; i < currentResult.length; i++) {
+        const item = currentResult[i];
+        addLog(`Converting word ${i + 1}/${currentResult.length}: ${item.word}...`, "process");
+        const imageUrl = await generateImage(item);
+        results.push({ word: item.word, url: imageUrl });
+        setGeneratedImages([...results]); // Update as we go
+      }
+      addLog("All images generated successfully!", "success");
+    } catch (error: any) {
+      addLog(`CONVERSION ERROR: ${error.message}`, "error");
+      console.error(error);
+    } finally {
+      setIsConverting(false);
+    }
+  };
+
+  const downloadAll = () => {
+    generatedImages.forEach((img, index) => {
+      setTimeout(() => {
+        const link = document.createElement('a');
+        link.href = img.url;
+        link.download = `${img.word}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }, index * 300);
+    });
   };
 
   return (
@@ -356,6 +523,58 @@ Input Data: ${JSON.stringify(enrichedWords)}`;
                     <WordCard key={idx} item={item} index={idx} />
                   ))}
                 </div>
+
+                {!generatedImages.length && (
+                  <div className="pt-6 flex justify-center">
+                    <button
+                      onClick={handleConvert}
+                      disabled={isConverting}
+                      className="flex items-center gap-3 px-10 py-5 rounded-2xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-all active:scale-95 shadow-lg shadow-primary/20 disabled:opacity-50 text-lg"
+                    >
+                      {isConverting ? <Loader2 className="animate-spin" size={24} /> : <ImageIcon size={24} />}
+                      Convert to Photo Cards
+                    </button>
+                  </div>
+                )}
+
+                {/* Photo Cards Gallery */}
+                {generatedImages.length > 0 && (
+                  <div className="mt-12 space-y-6 animate-fade-in">
+                    <div className="flex items-center justify-between border-b border-border pb-4">
+                      <h3 className="text-xl font-bold font-mono text-accent flex items-center gap-2">
+                        <ImageIcon size={24} />
+                        PHOTO_CARDS_GALLERY
+                      </h3>
+                      <span className="text-xs font-mono text-muted-foreground">
+                        {generatedImages.length} / {currentResult?.length} GENERATED
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {generatedImages.map((img, idx) => (
+                        <div key={idx} className="terminal-window overflow-hidden bg-surface-1 border-accent/20">
+                          <div className="terminal-header py-1 px-3 flex justify-between items-center bg-accent/10">
+                            <span className="text-[10px] font-mono text-accent">CARD::{img.word.toUpperCase()}</span>
+                            <span className="text-[10px] font-mono text-muted-foreground">1000x1000</span>
+                          </div>
+                          <img src={img.url} alt={img.word} className="w-full h-auto" />
+                        </div>
+                      ))}
+                    </div>
+
+                    {generatedImages.length === currentResult?.length && (
+                      <div className="pt-8 flex justify-center">
+                        <button
+                          onClick={downloadAll}
+                          className="flex items-center gap-3 px-10 py-5 rounded-2xl bg-accent text-accent-foreground font-bold hover:bg-accent/90 transition-all active:scale-95 shadow-lg shadow-accent/20 text-lg"
+                        >
+                          <Download size={24} />
+                          Download All Cards
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ) : !isProcessing && (
               <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
