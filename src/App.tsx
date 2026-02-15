@@ -11,6 +11,7 @@ import FontLogin from "./pages/FontLogin";
 import FontAdminDashboard from "./pages/FontAdminDashboard";
 import FontUserDashboard from "./pages/FontUserDashboard";
 import Analytics from "./pages/Analytics";
+import Automation from "./pages/Automation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/F/A" element={<FontAdminDashboard />} />
           <Route path="/F/U" element={<FontUserDashboard />} />
           <Route path="/A" element={<Analytics />} />
+          <Route path="/FP" element={<Automation />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
