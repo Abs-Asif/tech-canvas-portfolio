@@ -118,7 +118,7 @@ const Automation = () => {
     try {
       // Step 1: Get 10 words from AI
       addLog("Step 1: Requesting 10 unique words from AI (Qwen)...", "info");
-      const firstPrompt = `Return ONLY a valid JSON array of 10 unique English words (A1, A2, and B1 levels).
+      const firstPrompt = `Return ONLY a valid JSON array of 10 unique English words (C1 and C2 levels).
 NO introductory or concluding text. NO conversational filler.
 Example format: ["word1", "word2", ..., "word10"]`;
       const wordsResponse = await fetchOpenRouter(firstPrompt);
@@ -140,22 +140,30 @@ Example format: ["word1", "word2", ..., "word10"]`;
         if (data) {
           enrichedWords.push(data);
         } else {
-          addLog(`Could not find data for "${word}", skipping.`, "error");
+          addLog(`Could not find data for "${word}", will let AI generate details.`, "info");
+          enrichedWords.push({
+            word,
+            definition: "",
+            partOfSpeech: "",
+            example: ""
+          });
         }
       }
 
       if (enrichedWords.length === 0) throw new Error("Could not fetch data for any of the words.");
 
       // Step 3: Translate and refine with AI
-      addLog("Step 3: Sending enriched data for Bangla translation...", "info");
+      addLog("Step 3: Sending enriched data for Bangla translation and refinement...", "info");
       const secondPrompt = `Return ONLY a valid JSON array of objects. NO introductory or concluding text. NO conversational filler.
 
 Each object in the array must have these EXACT keys:
+- "partOfSpeech": (string) The part of speech in English.
 - "word": (string) The English word provided.
 - "banglaMeaning": (string) A refined Bangla meaning/definition (not just a literal translation).
-- "partOfSpeech": (string) The part of speech in English.
-- "example": (string) The English example sentence provided.
+- "example": (string) The English use example sentence. IF the input data has an example, you can use or refine it. IF there is no example provided, you MUST create one yourself.
 - "exampleBangla": (string) Bangla translation of the example sentence.
+
+Special Instruction: IF there is no example of the word provided to you, then make one yourself and attach the bangla translation.
 
 Input Data: ${JSON.stringify(enrichedWords)}`;
 
