@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Play, History, Loader2, AlertCircle, Terminal, CheckCircle2, Download, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, Play, History, Loader2, AlertCircle, Terminal, CheckCircle2, Download, Image as ImageIcon, Settings2, ChevronDown, ChevronUp, Check, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+
+const WORD_TYPES = [
+  "Relationship", "Family", "Friendship", "Romance", "Work/Career", "Business", "Finance", "Economics", "Law/Legal", "Government/Politics", "Education", "Science", "Technology", "Health", "Medicine", "Fitness", "Nutrition", "Psychology", "Mental health", "Religion", "Spirituality", "Ethics", "Philosophy", "Art", "Music", "Literature", "Film/TV", "Media/Journalism", "Entertainment", "Sports", "Travel", "Leisure", "Food/Culinary", "Fashion", "Beauty", "Home/Housing", "Real estate", "Environment", "Nature/Wildlife", "Agriculture", "Transportation", "Safety", "Danger/Risk", "Security (physical/cyber)", "Emergency/Disaster", "History", "Culture", "Language/Linguistics", "Society/Social issues", "Demographics", "Community", "Parenting", "Childhood", "Aging/Elder care", "Hobbies", "Crafts/DIY", "Gardening", "Retail/Shopping", "Marketing/Advertising", "Sales", "Customer service", "Manufacturing/Industry", "Energy/Utilities", "Finance products (banking, insurance, investing)", "Cryptocurrency/Blockchain", "Realities (urban/rural)", "Infrastructure", "Urban planning", "Religion-related (sects, denominations)"
+];
 
 interface AutomationRecord {
   id: string;
@@ -78,6 +82,21 @@ const Automation = () => {
   const [isConverting, setIsConverting] = useState(false);
   const [generatedImages, setGeneratedImages] = useState<{ word: string; url: string }[]>([]);
 
+  // Settings State
+  const [selectedTemplate, setSelectedTemplate] = useState<"T1" | "T2" | "T3">("T1");
+  const [selectedWordTypes, setSelectedWordTypes] = useState<string[]>([]);
+  const [isWordTypeModalOpen, setIsWordTypeModalOpen] = useState(false);
+  const [isLogsExpanded, setIsLogsExpanded] = useState(false);
+  const [isRawLogsExpanded, setIsRawLogsExpanded] = useState(false);
+
+  const toggleWordType = (type: string) => {
+    setSelectedWordTypes(prev =>
+      prev.includes(type)
+        ? prev.filter(t => t !== type)
+        : [...prev, type]
+    );
+  };
+
   const generateImage = (wordData: WordData): Promise<string> => {
     return new Promise((resolve, reject) => {
       const canvas = document.createElement('canvas');
@@ -91,15 +110,16 @@ const Automation = () => {
 
       const img = new Image();
       img.crossOrigin = "anonymous";
-      img.src = '/template.png';
+      img.src = `/${selectedTemplate}.png`;
 
       img.onload = async () => {
         try {
           // Ensure fonts are loaded
           await Promise.all([
-            document.fonts.load('bold 72px "JetBrains Mono"'),
+            document.fonts.load('bold 72px Inter'),
             document.fonts.load('40px Kalpurush'),
-            document.fonts.load('36px Inter')
+            document.fonts.load('36px Inter'),
+            document.fonts.load('bold 30px "JetBrains Mono"')
           ]);
 
           // Draw background
@@ -108,7 +128,7 @@ const Automation = () => {
           ctx.fillStyle = 'black';
 
           // 1. Word (centered)
-          ctx.font = 'bold 72px "JetBrains Mono"';
+          ctx.font = 'bold 72px Inter';
           ctx.textAlign = 'center';
           ctx.fillText(wordData.word, 500, 180);
 
@@ -131,8 +151,8 @@ const Automation = () => {
 
           // 4. Example Label
           ctx.font = 'bold 30px "JetBrains Mono"';
-          ctx.textAlign = 'left';
-          ctx.fillText('Example:', boxLeft, currentY);
+          ctx.textAlign = 'center';
+          ctx.fillText('Example:', 500, currentY);
           currentY += 45;
 
           // English Example (Justified, Inter/Sans)
@@ -240,6 +260,12 @@ const Automation = () => {
   const handleStart = async () => {
     if (isProcessing) return;
 
+    if (selectedWordTypes.length === 0) {
+      addLog("Please select at least one word type.", "error");
+      setIsWordTypeModalOpen(true);
+      return;
+    }
+
     setIsProcessing(true);
     setLogs([]);
     setRawLogs([]);
@@ -250,7 +276,7 @@ const Automation = () => {
     try {
       // Step 1: Get 10 words from AI
       addLog("Step 1: Requesting 10 unique words from AI (Qwen)...", "info");
-      const firstPrompt = `Return ONLY a valid JSON array of 10 unique English words (C1 and C2 levels).
+      const firstPrompt = `Return ONLY a valid JSON array of 10 unique English words (C1 and C2 levels) related to: ${selectedWordTypes.join(', ')}.
 NO introductory or concluding text. NO conversational filler.
 Example format: ["word1", "word2", ..., "word10"]`;
 
@@ -419,6 +445,71 @@ Input Data: ${JSON.stringify(enrichedWords)}`;
           </div>
         </header>
 
+        {/* Settings Bar */}
+        {view === "start" && (
+          <div className="mb-8 p-4 rounded-2xl bg-surface-1 border border-border space-y-4 animate-fade-in">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Settings2 size={18} className="text-primary" />
+                <span className="text-sm font-mono font-bold uppercase tracking-wider">Automation Settings</span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Template Selector */}
+                <div className="flex bg-black/20 p-1 rounded-xl border border-border/50">
+                  {(["T1", "T2", "T3"] as const).map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setSelectedTemplate(t)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all",
+                        selectedTemplate === t
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Word Type Selector Button */}
+                <button
+                  onClick={() => setIsWordTypeModalOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary border border-border hover:border-primary/50 transition-all active:scale-95"
+                >
+                  <span className="text-xs font-mono font-bold uppercase">
+                    Word Types ({selectedWordTypes.length || "All"})
+                  </span>
+                  <ChevronDown size={14} />
+                </button>
+              </div>
+            </div>
+
+            {selectedWordTypes.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-2 border-t border-border/30">
+                {selectedWordTypes.map(type => (
+                  <span
+                    key={type}
+                    className="flex items-center gap-1 px-2 py-1 rounded-md bg-primary/10 border border-primary/20 text-[10px] font-mono text-primary"
+                  >
+                    {type}
+                    <button onClick={() => toggleWordType(type)}>
+                      <X size={10} />
+                    </button>
+                  </span>
+                ))}
+                <button
+                  onClick={() => setSelectedWordTypes([])}
+                  className="text-[10px] font-mono text-destructive hover:underline ml-2"
+                >
+                  CLEAR_ALL
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className="flex gap-4 mb-10">
           <button
@@ -455,55 +546,69 @@ Input Data: ${JSON.stringify(enrichedWords)}`;
         {/* Live Logs */}
         {logs.length > 0 && view === "start" && (
           <div className="terminal-window mb-6">
-            <div className="terminal-header flex items-center justify-between">
+            <div
+              className="terminal-header flex items-center justify-between cursor-pointer hover:bg-secondary/70 transition-colors"
+              onClick={() => setIsLogsExpanded(!isLogsExpanded)}
+            >
               <div className="flex items-center gap-2">
                 <Terminal size={14} className="text-primary" />
                 <span className="text-xs font-mono font-bold">LIVE_PROCESS_LOGS</span>
               </div>
-              <div className="flex gap-1">
-                <div className="w-2 h-2 rounded-full bg-border" />
-                <div className="w-2 h-2 rounded-full bg-border" />
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1 mr-2">
+                  <div className="w-2 h-2 rounded-full bg-border" />
+                  <div className="w-2 h-2 rounded-full bg-border" />
+                </div>
+                {isLogsExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
               </div>
             </div>
-            <div className="p-4 bg-black/40 font-mono text-xs md:text-sm space-y-2">
-              {logs.map((log, i) => (
-                <div key={i} className={cn(
-                  "flex gap-2",
-                  log.type === "success" && "text-primary",
-                  log.type === "error" && "text-destructive",
-                  log.type === "process" && "text-accent",
-                  log.type === "info" && "text-muted-foreground"
-                )}>
-                  <span className="shrink-0">{">"}</span>
-                  <span>{log.message}</span>
-                </div>
-              ))}
-            </div>
+            {isLogsExpanded && (
+              <div className="p-4 bg-black/40 font-mono text-xs md:text-sm space-y-2 animate-in slide-in-from-top-2 duration-200">
+                {logs.map((log, i) => (
+                  <div key={i} className={cn(
+                    "flex gap-2",
+                    log.type === "success" && "text-primary",
+                    log.type === "error" && "text-destructive",
+                    log.type === "process" && "text-accent",
+                    log.type === "info" && "text-muted-foreground"
+                  )}>
+                    <span className="shrink-0">{">"}</span>
+                    <span>{log.message}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
         {/* Raw Logs Audit */}
         {rawLogs.length > 0 && view === "start" && (
           <div className="terminal-window mb-10 border-amber-500/30">
-            <div className="terminal-header flex items-center justify-between bg-amber-500/10">
+            <div
+              className="terminal-header flex items-center justify-between bg-amber-500/10 cursor-pointer hover:bg-amber-500/20 transition-colors"
+              onClick={() => setIsRawLogsExpanded(!isRawLogsExpanded)}
+            >
               <div className="flex items-center gap-2">
                 <AlertCircle size={14} className="text-amber-500" />
                 <span className="text-xs font-mono font-bold text-amber-500">RAW_AUDIT_LOGS</span>
               </div>
+              {isRawLogsExpanded ? <ChevronUp size={14} className="text-amber-500" /> : <ChevronDown size={14} className="text-amber-500" />}
             </div>
-            <div className="p-4 bg-black/60 font-mono text-[10px] space-y-4 max-h-[500px] overflow-y-auto">
-              {rawLogs.map((log, i) => (
-                <div key={i} className="space-y-1 border-b border-border/30 pb-4 last:border-0">
-                  <div className="text-amber-500/70 font-bold flex items-center gap-2">
-                    <span className="bg-amber-500/20 px-1 rounded text-[8px]">LOG_{i + 1}</span>
-                    {log.label}
+            {isRawLogsExpanded && (
+              <div className="p-4 bg-black/60 font-mono text-[10px] space-y-4 animate-in slide-in-from-top-2 duration-200">
+                {rawLogs.map((log, i) => (
+                  <div key={i} className="space-y-1 border-b border-border/30 pb-4 last:border-0">
+                    <div className="text-amber-500/70 font-bold flex items-center gap-2">
+                      <span className="bg-amber-500/20 px-1 rounded text-[8px]">LOG_{i + 1}</span>
+                      {log.label}
+                    </div>
+                    <pre className="text-muted-foreground whitespace-pre-wrap break-all bg-black/20 p-2 rounded border border-border/10 overflow-x-auto">
+                      {typeof log.content === "string" ? log.content : JSON.stringify(log.content, null, 2)}
+                    </pre>
                   </div>
-                  <pre className="text-muted-foreground whitespace-pre-wrap break-all bg-black/20 p-2 rounded border border-border/10 overflow-x-auto">
-                    {typeof log.content === "string" ? log.content : JSON.stringify(log.content, null, 2)}
-                  </pre>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -634,6 +739,78 @@ Input Data: ${JSON.stringify(enrichedWords)}`;
           )}
         </div>
       </div>
+
+      {/* Word Type Selection Modal */}
+      {isWordTypeModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+            onClick={() => setIsWordTypeModalOpen(false)}
+          />
+          <div className="relative w-full max-w-2xl max-h-[80vh] bg-card border border-border rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-border flex items-center justify-between bg-secondary/30">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                  <CheckCircle2 size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold font-mono uppercase tracking-tight">Select Word Types</h3>
+                  <p className="text-xs text-muted-foreground font-mono">Minimum 1, Maximum All</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsWordTypeModalOpen(false)}
+                className="p-2 rounded-full hover:bg-muted transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                {WORD_TYPES.map((type) => {
+                  const isSelected = selectedWordTypes.includes(type);
+                  return (
+                    <button
+                      key={type}
+                      onClick={() => toggleWordType(type)}
+                      className={cn(
+                        "flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-all text-xs font-mono",
+                        isSelected
+                          ? "bg-primary/10 border-primary text-primary"
+                          : "bg-surface-1 border-border text-muted-foreground hover:border-primary/50"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-4 h-4 rounded border flex items-center justify-center shrink-0",
+                        isSelected ? "bg-primary border-primary" : "border-border"
+                      )}>
+                        {isSelected && <Check size={12} className="text-primary-foreground" />}
+                      </div>
+                      <span className="truncate">{type}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-border bg-secondary/10 flex gap-4">
+              <button
+                onClick={() => setSelectedWordTypes(WORD_TYPES)}
+                className="flex-1 px-4 py-3 rounded-xl border border-border font-mono text-sm font-bold hover:bg-muted transition-all"
+              >
+                SELECT ALL
+              </button>
+              <button
+                onClick={() => setIsWordTypeModalOpen(false)}
+                className="flex-[2] px-4 py-3 rounded-xl bg-primary text-primary-foreground font-mono text-sm font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
+              >
+                DONE ({selectedWordTypes.length || "ALL SELECTED"})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
