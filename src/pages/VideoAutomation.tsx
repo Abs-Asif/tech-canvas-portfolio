@@ -4,9 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import puter from "@heyputer/puter.js";
 
-// Initialize Puter if possible - though it often works automatically in browser
-// We'll wrap the calls to ensure it's ready.
-
 const WORD_TYPES = [
   "Relationship", "Family", "Friendship", "Romance", "Work/Career", "Business", "Finance", "Economics", "Law/Legal", "Government/Politics", "Education", "Science", "Technology", "Health", "Medicine", "Fitness", "Nutrition", "Psychology", "Mental health", "Religion", "Spirituality", "Ethics", "Philosophy", "Art", "Music", "Literature", "Film/TV", "Media/Journalism", "Entertainment", "Sports", "Travel", "Leisure", "Food/Culinary", "Fashion", "Beauty", "Home/Housing", "Real estate", "Environment", "Nature/Wildlife", "Agriculture", "Transportation", "Safety", "Danger/Risk", "Security (physical/cyber)", "Emergency/Disaster", "History", "Culture", "Language/Linguistics", "Society/Social issues", "Demographics", "Community", "Parenting", "Childhood", "Aging/Elder care", "Hobbies", "Crafts/DIY", "Gardening", "Retail/Shopping", "Marketing/Advertising", "Sales", "Customer service", "Manufacturing/Industry", "Energy/Utilities", "Finance products (banking, insurance, investing)", "Cryptocurrency/Blockchain", "Realities (urban/rural)", "Infrastructure", "Urban planning", "Religion-related (sects, denominations)"
 ];
@@ -133,39 +130,81 @@ const VideoAutomation = () => {
     addLog("Initializing video automation sequence...", "process");
 
     try {
-      addLog("Step 1: Requesting 10 unique words from AI...", "info");
+      addLog("Step 1: Requesting 10 unique words from AI (Qwen)...", "info");
       const firstPrompt = `Return ONLY a valid JSON array of 10 unique English words (C1 and C2 levels) related to: ${selectedWordTypes.join(', ')}.
-NO introductory or concluding text.
+NO introductory or concluding text. NO conversational filler.
 Example format: ["word1", "word2", ..., "word10"]`;
 
+      setRawLogs(prev => [...prev, { label: "STEP_1_PROMPT", content: firstPrompt }]);
+
       const wordsResponse = await fetchOpenRouter(firstPrompt);
+      addLog("Words received from AI.", "success");
+
+      setRawLogs(prev => [...prev, { label: "STEP_1_RAW_RESPONSE", content: wordsResponse }]);
+
       const wordsList = parseJsonFromAi(wordsResponse);
       const wordsArray = Array.isArray(wordsList) ? wordsList : wordsList.words || [];
 
-      addLog(`Extracted ${wordsArray.length} words.`, "success");
+      if (!wordsArray.length) throw new Error("Received empty word list from AI.");
+
+      addLog(`Extracted ${wordsArray.length} words: ${wordsArray.join(", ")}`, "info");
 
       addLog("Step 2: Fetching data from Dictionary API...", "info");
       const enrichedWords = [];
       for (const word of wordsArray) {
+        addLog(`Processing word: ${word}...`, "process");
         const data = await fetchDictionary(word);
-        enrichedWords.push(data ? data : { word, definition: "", partOfSpeech: "", example: "" });
+        if (data) {
+          enrichedWords.push(data);
+        } else {
+          addLog(`Could not find data for "${word}", will let AI generate details.`, "info");
+          enrichedWords.push({
+            word,
+            definition: "",
+            partOfSpeech: "",
+            example: ""
+          });
+        }
       }
 
+      if (enrichedWords.length === 0) throw new Error("Could not fetch data for any of the words.");
+
+      setRawLogs(prev => [...prev, { label: "STEP_2_ENRICHED_DATA", content: enrichedWords }]);
+
       addLog("Step 3: Translating and refining with AI...", "info");
-      const secondPrompt = `Return ONLY a valid JSON array of objects.
-Each object: {"partOfSpeech": "...", "word": "...", "banglaMeaning": "...", "example": "...", "exampleBangla": "..."}
-Input: ${JSON.stringify(enrichedWords)}`;
+      const secondPrompt = `Return ONLY a valid JSON array of objects. NO introductory or concluding text. NO conversational filler.
+
+Each object in the array must have these EXACT keys:
+- "partOfSpeech": (string) The part of speech in English.
+- "word": (string) The English word provided.
+- "banglaMeaning": (string) A refined Bangla meaning/definition (not just a literal translation).
+- "example": (string) The English use example sentence. IF the input data has an example, you can use or refine it. IF there is no example provided, you MUST create one yourself.
+- "exampleBangla": (string) Bangla translation of the example sentence.
+
+Special Instruction: IF there is no example of the word provided to you, then make one yourself and attach the bangla translation.
+
+Input Data: ${JSON.stringify(enrichedWords)}`;
+
+      setRawLogs(prev => [...prev, { label: "STEP_3_PROMPT", content: secondPrompt }]);
 
       const translationResponse = await fetchOpenRouter(secondPrompt);
+      addLog("Translation received from AI.", "success");
+
+      setRawLogs(prev => [...prev, { label: "STEP_3_RAW_RESPONSE", content: translationResponse }]);
+
       const finalJson = parseJsonFromAi(translationResponse);
+
+      setRawLogs(prev => [...prev, { label: "STEP_3_PARSED_JSON", content: finalJson }]);
 
       const formattedResult: WordData[] = finalJson.map((item: any) => ({
         word: item.word || item.english_word || "",
-        banglaMeaning: item.banglaMeaning || item.bangla_meaning || item.meaning || "",
-        partOfSpeech: item.partOfSpeech || item.pos || "",
-        example: item.example || "",
-        exampleBangla: item.exampleBangla || item.example_bn || ""
+        banglaMeaning: item.banglaMeaning || item.bangla_meaning || item.meaning_bangla || item.meaning || "",
+        partOfSpeech: item.partOfSpeech || item.part_of_speech || item.pos || "",
+        example: item.example || item.use_example || item.example_en || "",
+        exampleBangla: item.exampleBangla || item.bangla_translation_of_example || item.example_bn || item.example_bangla || ""
       }));
+
+      setRawLogs(prev => [...prev, { label: "FINAL_FORMATTED_RESULT", content: formattedResult }]);
 
       setCurrentResult(formattedResult);
       addLog("Automation sequence completed successfully!", "success");
@@ -320,7 +359,15 @@ Input: ${JSON.stringify(enrichedWords)}`;
           try {
             // @ts-ignore
             const audio = await puter.ai.txt2speech(part.text, part.lang);
-            if (audio) audio.crossOrigin = "anonymous";
+          if (audio) {
+            audio.crossOrigin = "anonymous";
+            // Wait for audio metadata to load to ensure duration is available if needed
+            await new Promise((res) => {
+              audio.onloadedmetadata = res;
+              // Timeout as fallback
+              setTimeout(res, 1000);
+            });
+          }
             allAudioSegments.push({ wordIdx: i, type: part.type, audio });
           } catch (err) {
             console.error("TTS fetch error", err);
@@ -328,6 +375,49 @@ Input: ${JSON.stringify(enrichedWords)}`;
           }
         }
       }
+
+    const renderFrame = (item: WordData, visibleParts: string[]) => {
+      // Clear and Draw BG
+      ctx.clearRect(0, 0, 1080, 1920);
+      if (bgImg.complete && bgImg.naturalWidth > 0) {
+        ctx.drawImage(bgImg, 0, 0, 1080, 1920);
+      } else {
+        ctx.fillStyle = "#f8fafc";
+        ctx.fillRect(0, 0, 1080, 1920);
+      }
+
+      // Draw Text Elements
+      let currentY = 500;
+
+      if (visibleParts.includes("word")) {
+        ctx.fillStyle = "black";
+        ctx.font = "bold 90px Inter";
+        ctx.textAlign = "center";
+        ctx.fillText(item.word, 540, currentY);
+        currentY += 120;
+      }
+
+      if (visibleParts.includes("meaning")) {
+        ctx.fillStyle = "black";
+        ctx.font = "60px Kalpurush";
+        ctx.textAlign = "center";
+        ctx.fillText(item.banglaMeaning, 540, currentY);
+        currentY += 200;
+      }
+
+      if (visibleParts.includes("example")) {
+        ctx.fillStyle = "black";
+        ctx.font = "italic 45px Inter";
+        currentY = drawJustifiedText(ctx, `"${item.example}"`, 140, currentY, 800, 60);
+        currentY += 40;
+      }
+
+      if (visibleParts.includes("translation")) {
+        ctx.fillStyle = "black";
+        ctx.font = "40px Kalpurush";
+        currentY = drawJustifiedText(ctx, item.exampleBangla, 140, currentY, 800, 55);
+      }
+    };
 
       // 2. Start recording
       addLog("Step 2: Starting recording sequence...", "success");
@@ -350,71 +440,70 @@ Input: ${JSON.stringify(enrichedWords)}`;
             audioSource.connect(audioCtx.destination);
 
             await new Promise<void>((res) => {
+            let isDone = false;
               audio.onended = () => {
+              if (isDone) return;
+              isDone = true;
                 audioSource.disconnect();
                 res();
               };
 
-              const draw = () => {
-                // Clear and Draw BG
-                ctx.clearRect(0, 0, 1080, 1920);
-                if (bgImg.complete && bgImg.naturalWidth > 0) {
-                  ctx.drawImage(bgImg, 0, 0, 1080, 1920);
-                } else {
-                  ctx.fillStyle = "#020617";
-                  ctx.fillRect(0, 0, 1080, 1920);
-                }
-
-                // Draw Text Elements
-                let currentY = 500;
-
-                if (visibleParts.includes("word")) {
-                  ctx.fillStyle = "white";
-                  ctx.font = "bold 90px Inter";
-                  ctx.textAlign = "center";
-                  ctx.fillText(item.word, 540, currentY);
-                  currentY += 120;
-                }
-
-                if (visibleParts.includes("meaning")) {
-                  ctx.fillStyle = "#22c55e";
-                  ctx.font = "60px Kalpurush";
-                  ctx.textAlign = "center";
-                  ctx.fillText(item.banglaMeaning, 540, currentY);
-                  currentY += 200;
-                }
-
-                if (visibleParts.includes("example")) {
-                  ctx.fillStyle = "#94a3b8";
-                  ctx.font = "italic 45px Inter";
-                  currentY = drawJustifiedText(ctx, `"${item.example}"`, 140, currentY, 800, 60);
-                  currentY += 40;
-                }
-
-                if (visibleParts.includes("translation")) {
-                  ctx.fillStyle = "#64748b";
-                  ctx.font = "40px Kalpurush";
-                  currentY = drawJustifiedText(ctx, item.exampleBangla, 140, currentY, 800, 55);
-                }
-
-                if (!audio.paused && !audio.ended) {
-                  requestAnimationFrame(draw);
-                }
+            const loop = () => {
+              if (isDone) return;
+              renderFrame(item, visibleParts);
+              requestAnimationFrame(loop);
               };
 
               audio.play().catch(e => {
                 console.error("Audio play failed", e);
+              if (!isDone) {
+                isDone = true;
                 res();
+              }
               });
-              requestAnimationFrame(draw);
+            requestAnimationFrame(loop);
+
+            // Safety timeout if audio fails to end
+            setTimeout(() => {
+              if (!isDone) {
+                isDone = true;
+                audio.pause();
+                audioSource.disconnect();
+                res();
+              }
+            }, (audio.duration || 5) * 1000 + 1000);
             });
           } else {
             // Fallback if audio failed to load
-            await new Promise(res => setTimeout(res, 2000));
+          addLog(`Audio missing for ${item.word} (${segment.type}), using fallback delay.`, "error");
+          const startTime = Date.now();
+          const duration = 2000;
+          await new Promise<void>((res) => {
+            const loop = () => {
+              if (Date.now() - startTime >= duration) {
+                res();
+                return;
+              }
+              renderFrame(item, visibleParts);
+              requestAnimationFrame(loop);
+            };
+            requestAnimationFrame(loop);
+          });
           }
         }
         // Short gap between words
-        await new Promise(res => setTimeout(res, 1000));
+      const gapStart = Date.now();
+      await new Promise<void>((res) => {
+        const loop = () => {
+          if (Date.now() - gapStart >= 1000) {
+            res();
+            return;
+          }
+          renderFrame(item, ["word", "meaning", "example", "translation"]);
+          requestAnimationFrame(loop);
+        };
+        requestAnimationFrame(loop);
+      });
       }
 
       recorder.stop();
@@ -450,6 +539,53 @@ Input: ${JSON.stringify(enrichedWords)}`;
           </div>
         </header>
 
+        {/* Settings Bar */}
+        {view === "start" && (
+          <div className="mb-8 p-4 rounded-2xl bg-surface-1 border border-border space-y-4 animate-fade-in">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Settings2 size={18} className="text-primary" />
+                <span className="text-sm font-mono font-bold uppercase tracking-wider">Automation Settings</span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Word Type Selector Button */}
+                <button
+                  onClick={() => setIsWordTypeModalOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary border border-border hover:border-primary/50 transition-all active:scale-95"
+                >
+                  <span className="text-xs font-mono font-bold uppercase">
+                    Word Types ({selectedWordTypes.length || "All"})
+                  </span>
+                  <ChevronDown size={14} />
+                </button>
+              </div>
+            </div>
+
+            {selectedWordTypes.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-2 border-t border-border/30">
+                {selectedWordTypes.map(type => (
+                  <span
+                    key={type}
+                    className="flex items-center gap-1 px-2 py-1 rounded-md bg-primary/10 border border-primary/20 text-[10px] font-mono text-primary"
+                  >
+                    {type}
+                    <button onClick={() => toggleWordType(type)}>
+                      <X size={10} />
+                    </button>
+                  </span>
+                ))}
+                <button
+                  onClick={() => setSelectedWordTypes([])}
+                  className="text-[10px] font-mono text-destructive hover:underline ml-2"
+                >
+                  CLEAR_ALL
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className="flex gap-4 mb-10">
           <button
@@ -461,8 +597,8 @@ Input: ${JSON.stringify(enrichedWords)}`;
             className={cn(
               "flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-bold transition-all active:scale-95 shadow-lg",
               view === "start" && !isProcessing
-                ? "bg-primary text-primary-foreground"
-                : "bg-surface-1 text-muted-foreground"
+                ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/20"
+                : "bg-surface-1 border border-border text-muted-foreground hover:border-primary/50"
             )}
           >
             {isProcessing ? <Loader2 className="animate-spin" size={20} /> : <Play size={20} />}
@@ -474,42 +610,77 @@ Input: ${JSON.stringify(enrichedWords)}`;
             className={cn(
               "flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-bold transition-all active:scale-95 shadow-lg",
               view === "records"
-                ? "bg-accent text-accent-foreground"
-                : "bg-surface-1 text-muted-foreground"
+                ? "bg-accent text-accent-foreground hover:bg-accent/90 shadow-accent/20"
+                : "bg-surface-1 border border-border text-muted-foreground hover:border-primary/50"
             )}
           >
             <History size={20} />
             View Records
           </button>
-          <button
-            onClick={() => setIsWordTypeModalOpen(true)}
-            className="px-6 py-4 rounded-2xl bg-surface-1 border border-border hover:border-primary transition-all active:scale-95"
-          >
-            <Settings2 size={20} />
-          </button>
         </div>
 
-        {/* Logs */}
-        {logs.length > 0 && (
+        {/* Live Logs */}
+        {logs.length > 0 && view === "start" && (
           <div className="terminal-window mb-6">
-            <div className="terminal-header flex items-center justify-between px-4 py-2 cursor-pointer" onClick={() => setIsLogsExpanded(!isLogsExpanded)}>
+            <div
+              className="terminal-header flex items-center justify-between cursor-pointer hover:bg-secondary/70 transition-colors"
+              onClick={() => setIsLogsExpanded(!isLogsExpanded)}
+            >
               <div className="flex items-center gap-2">
                 <Terminal size={14} className="text-primary" />
-                <span className="text-xs font-mono font-bold">PROCESS_LOGS</span>
+                <span className="text-xs font-mono font-bold">LIVE_PROCESS_LOGS</span>
               </div>
-              {isLogsExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1 mr-2">
+                  <div className="w-2 h-2 rounded-full bg-border" />
+                  <div className="w-2 h-2 rounded-full bg-border" />
+                </div>
+                {isLogsExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </div>
             </div>
             {isLogsExpanded && (
-              <div className="p-4 bg-black/40 font-mono text-xs space-y-2 max-h-60 overflow-y-auto">
+              <div className="p-4 bg-black/40 font-mono text-xs md:text-sm space-y-2 animate-in slide-in-from-top-2 duration-200">
                 {logs.map((log, i) => (
                   <div key={i} className={cn(
                     "flex gap-2",
                     log.type === "success" && "text-primary",
                     log.type === "error" && "text-destructive",
-                    log.type === "process" && "text-accent"
+                    log.type === "process" && "text-accent",
+                    log.type === "info" && "text-muted-foreground"
                   )}>
-                    <span>{">"}</span>
+                    <span className="shrink-0">{">"}</span>
                     <span>{log.message}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Raw Logs Audit */}
+        {rawLogs.length > 0 && view === "start" && (
+          <div className="terminal-window mb-10 border-amber-500/30">
+            <div
+              className="terminal-header flex items-center justify-between bg-amber-500/10 cursor-pointer hover:bg-amber-500/20 transition-colors"
+              onClick={() => setIsRawLogsExpanded(!isRawLogsExpanded)}
+            >
+              <div className="flex items-center gap-2">
+                <AlertCircle size={14} className="text-amber-500" />
+                <span className="text-xs font-mono font-bold text-amber-500">RAW_AUDIT_LOGS</span>
+              </div>
+              {isRawLogsExpanded ? <ChevronUp size={14} className="text-amber-500" /> : <ChevronDown size={14} className="text-amber-500" />}
+            </div>
+            {isRawLogsExpanded && (
+              <div className="p-4 bg-black/60 font-mono text-[10px] space-y-4 animate-in slide-in-from-top-2 duration-200">
+                {rawLogs.map((log, i) => (
+                  <div key={i} className="space-y-1 border-b border-border/30 pb-4 last:border-0">
+                    <div className="text-amber-500/70 font-bold flex items-center gap-2">
+                      <span className="bg-amber-500/20 px-1 rounded text-[8px]">LOG_{i + 1}</span>
+                      {log.label}
+                    </div>
+                    <pre className="text-muted-foreground whitespace-pre-wrap break-all bg-black/20 p-2 rounded border border-border/10 overflow-x-auto">
+                      {typeof log.content === "string" ? log.content : JSON.stringify(log.content, null, 2)}
+                    </pre>
                   </div>
                 ))}
               </div>
@@ -527,17 +698,9 @@ Input: ${JSON.stringify(enrichedWords)}`;
                   GENERATION_COMPLETE
                 </h3>
 
-                <div className="grid gap-4 max-w-2xl mx-auto">
+                <div className="grid gap-6">
                   {currentResult.map((item, idx) => (
-                    <div key={idx} className="terminal-window bg-card/40 text-left">
-                      <div className="terminal-header py-1 px-3 flex justify-between">
-                        <span className="text-[10px] font-mono text-primary">{item.word}</span>
-                        <span className="text-[10px] font-mono text-muted-foreground italic">{item.partOfSpeech}</span>
-                      </div>
-                      <div className="p-3">
-                        <p className="font-bangla text-primary text-sm">{item.banglaMeaning}</p>
-                      </div>
-                    </div>
+                    <WordCard key={idx} item={item} index={idx} />
                   ))}
                 </div>
 
@@ -606,26 +769,21 @@ Input: ${JSON.stringify(enrichedWords)}`;
                         </span>
                         <div className="h-px flex-1 bg-border/50" />
                       </div>
-                      <div className="grid gap-4">
+                      <div className="grid gap-6">
                         {record.data.map((item, idx) => (
-                          <div key={idx} className="terminal-window bg-card/20">
-                            <div className="p-4 flex justify-between items-center">
-                              <div>
-                                <span className="font-bold">{item.word}</span>
-                                <span className="text-xs text-muted-foreground ml-2">({item.partOfSpeech})</span>
-                                <p className="font-bangla text-primary text-sm mt-1">{item.banglaMeaning}</p>
-                              </div>
-                              <button
-                                onClick={() => {
-                                  setCurrentResult(record.data);
-                                  setView("start");
-                                  setVideoUrl(null);
-                                }}
-                                className="p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                              >
-                                <Play size={16} />
-                              </button>
-                            </div>
+                          <div key={idx} className="relative group">
+                            <WordCard item={item} index={idx} />
+                            <button
+                              onClick={() => {
+                                setCurrentResult(record.data);
+                                setView("start");
+                                setVideoUrl(null);
+                              }}
+                              className="absolute top-2 right-2 p-2 rounded-lg bg-primary text-primary-foreground opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                              title="Load this record"
+                            >
+                              <Play size={16} />
+                            </button>
                           </div>
                         ))}
                       </div>
@@ -686,5 +844,24 @@ Input: ${JSON.stringify(enrichedWords)}`;
     </div>
   );
 };
+
+const WordCard = ({ item, index }: { item: WordData; index: number }) => (
+  <div className="terminal-window bg-card/40 animate-fade-in-up" style={{ animationDelay: `${index * 50}ms` }}>
+    <div className="terminal-header flex items-center justify-between py-2 px-4">
+      <span className="text-[10px] font-mono text-primary">WORD::{item.word.toUpperCase()}</span>
+      <span className="text-[10px] font-mono text-muted-foreground italic">{item.partOfSpeech}</span>
+    </div>
+    <div className="p-6 space-y-4">
+      <div className="space-y-1 text-left">
+        <h4 className="text-2xl font-bold">{item.word}</h4>
+        <p className="text-xl font-bangla text-primary">{item.banglaMeaning}</p>
+      </div>
+      <div className="space-y-2 pt-2 border-t border-border/30 text-left">
+        <p className="text-sm text-muted-foreground italic">"{item.example}"</p>
+        <p className="text-sm font-bangla text-muted-foreground/80">{item.exampleBangla}</p>
+      </div>
+    </div>
+  </div>
+);
 
 export default VideoAutomation;
