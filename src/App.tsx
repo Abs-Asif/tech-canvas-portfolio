@@ -13,6 +13,7 @@ import FontUserDashboard from "./pages/FontUserDashboard";
 import Analytics from "./pages/Analytics";
 import Automation from "./pages/Automation";
 import VideoAutomation from "./pages/VideoAutomation";
+import AiChat from "./pages/AiChat";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/A" element={<Analytics />} />
           <Route path="/FP" element={<Automation />} />
           <Route path="/FV" element={<VideoAutomation />} />
+          <Route path="/AI" element={<AiChat />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
