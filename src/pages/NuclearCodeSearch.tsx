@@ -1,7 +1,29 @@
 import { useState } from "react";
-import { ArrowLeft, Search, Loader2, AlertCircle, HardDrive, ExternalLink } from "lucide-react";
+import { ArrowLeft, Search, Loader2, AlertCircle, HardDrive, ExternalLink, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+
+interface NHentaiPage {
+  t: "j" | "p" | "w";
+  w: number;
+  h: number;
+}
+
+interface NHentaiGallery {
+  id: number;
+  media_id: string;
+  title: {
+    english: string;
+    japanese: string;
+    pretty: string;
+  };
+  images: {
+    pages: NHentaiPage[];
+    cover: NHentaiPage;
+    thumbnail: NHentaiPage;
+  };
+  num_pages: number;
+}
 
 const NuclearCodeSearch = () => {
   const navigate = useNavigate();
@@ -10,9 +32,38 @@ const NuclearCodeSearch = () => {
   const [mangaData, setMangaData] = useState<{ title: string; images: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const getExtension = (t: string) => {
+    switch (t) {
+      case "p": return "png";
+      case "w": return "webp";
+      default: return "jpg";
+    }
+  };
+
+  const fetchWithProxy = async (targetUrl: string) => {
+    // Primary: CodeTabs Proxy
+    try {
+      const response = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`);
+      if (response.ok) return await response.json();
+    } catch (e) {
+      console.warn("Primary proxy failed, trying fallback...");
+    }
+
+    // Fallback: AllOrigins
+    try {
+      const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`);
+      const data = await response.json();
+      if (data && data.contents) return JSON.parse(data.contents);
+    } catch (e) {
+      console.error("Fallback proxy failed as well.");
+    }
+
+    throw new Error("All proxy layers failed to retrieve data.");
+  };
+
   const handleSearch = async () => {
-    if (!/^\d{6}$/.test(code)) {
-      toast.error("Please enter a valid 6-digit code");
+    if (!/^\d{1,6}$/.test(code)) {
+      toast.error("Please enter a valid code");
       return;
     }
 
@@ -21,108 +72,27 @@ const NuclearCodeSearch = () => {
     setMangaData(null);
 
     try {
-      // Use AllOrigins proxy to bypass CORS
-      const targetUrl = `https://nhentai.xxx/g/${code}/`;
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+      const apiUrl = `https://nhentai.net/api/gallery/${code}`;
+      const data: NHentaiGallery = await fetchWithProxy(apiUrl);
 
-      const response = await fetch(proxyUrl);
-      const data = await response.json();
-
-      if (!data || !data.contents) {
-        throw new Error("Failed to retrieve content from proxy.");
+      if (!data || !data.media_id) {
+        throw new Error("Invalid response from archive servers.");
       }
 
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(data.contents, "text/html");
+      const title = data.title.english || data.title.pretty || `Manga #${code}`;
+      const mediaId = data.media_id;
 
-      // Extract title matching the specific format: [Author] Title (Language)
-      // On nhentai, this is usually the h1.title within #info
-      const titleElements = Array.from(doc.querySelectorAll("#info h1 .full, #info h1, h1"));
-      let title = `Manga #${code}`;
-
-      const titleRegex = /^\[.+\] .+\(.+\)$/;
-      for (const el of titleElements) {
-        const text = el.textContent?.trim() || "";
-        if (titleRegex.test(text)) {
-          title = text;
-          break;
-        }
-      }
-
-      // If no exact match found, try to construct it from parts or use the first h1
-      if (title === `Manga #${code}`) {
-        const h1 = doc.querySelector("#info h1")?.textContent?.trim();
-        if (h1) title = h1;
-      }
-
-      // Extract images using the "system" (URL transformation) logic
-      // System logic: replace 't.' with 'i.' for hostname and 't.' with '.' for filename
-      const mangaImages: string[] = [];
-
-      // Find images in gallery thumbnails
-      // Thumbnails are usually in .gallerythumb img or inside noscript
-      const thumbElements = Array.from(doc.querySelectorAll(".gallerythumb img, .thumb-container img"));
-
-      thumbElements.forEach((img) => {
-        const src = img.getAttribute("data-src") || img.getAttribute("src");
-        if (src) {
-          // Apply transformation logic from nhentai-image-getter
-          // Logic: images.push(url.replace('t.', 'i.').replace('t.', '.'))
-
-          let highResUrl = src;
-
-          // 1. Host transformation: t.nhentai.net -> i.nhentai.net
-          // Or more generally, replace first 't.' with 'i.' if it looks like a subdomain
-          if (highResUrl.includes("//t.")) {
-            highResUrl = highResUrl.replace("//t.", "//i.");
-          } else if (highResUrl.includes("t.nhentai")) {
-            highResUrl = highResUrl.replace("t.nhentai", "i.nhentai");
-          }
-
-          // 2. Filename transformation: .../1t.jpg -> .../1.jpg
-          // Replace 't.' that appears before the extension (at the end of the numeric part)
-          highResUrl = highResUrl.replace(/(\d+)t\./, "$1.");
-
-          if (!mangaImages.includes(highResUrl)) {
-            mangaImages.push(highResUrl);
-          }
-        }
+      // Construct HQ image URLs
+      const images = data.images.pages.map((page, index) => {
+        const ext = getExtension(page.t);
+        // Page numbers are 1-indexed
+        return `https://i.nhentai.net/galleries/${mediaId}/${index + 1}.${ext}`;
       });
 
-      // Secondary attempt via noscript tags (nhentai often uses noscript for thumbnails)
-      if (mangaImages.length === 0) {
-        const noscripts = Array.from(doc.querySelectorAll(".gallerythumb noscript, .thumb-container noscript"));
-        noscripts.forEach(ns => {
-          const content = ns.textContent || "";
-          const match = content.match(/src="([^"]+)"/);
-          if (match) {
-            let url = match[1];
-            url = url.replace("//t.", "//i.")
-                     .replace("t.nhentai", "i.nhentai")
-                     .replace(/(\d+)t\./, "$1.");
-            if (!mangaImages.includes(url)) mangaImages.push(url);
-          }
-        });
-      }
-
-      // Sort images numerically by the page number in the URL
-      mangaImages.sort((a, b) => {
-        const matchA = a.match(/\/(\d+)\./);
-        const matchB = b.match(/\/(\d+)\./);
-        if (matchA && matchB) {
-          return parseInt(matchA[1]) - parseInt(matchB[1]);
-        }
-        return 0;
-      });
-
-      if (mangaImages.length === 0) {
-        setError("No manga panels found. The archives might be under heavy protection.");
-      } else {
-        setMangaData({ title, images: mangaImages });
-      }
-    } catch (err) {
-      console.error("Decryption error:", err);
-      setError("Failed to breach the firewall. Check your connection and try again.");
+      setMangaData({ title, images });
+    } catch (err: any) {
+      console.error("Archive access error:", err);
+      setError("FAILED TO BYPASS ENCRYPTION. The target may be offline or heavily guarded.");
     } finally {
       setIsLoading(false);
     }
@@ -144,8 +114,8 @@ const NuclearCodeSearch = () => {
             <h1 className="text-2xl md:text-5xl font-bold font-mono truncate gradient-text">
               Nuclear Code Search
             </h1>
-            <p className="text-muted-foreground font-mono text-[10px] md:text-sm truncate uppercase tracking-widest">
-              {"// SECURE_ARCHIVE_ACCESS_V2"}
+            <p className="text-muted-foreground font-mono text-[10px] md:text-sm truncate">
+              Search through the database of nHnetai.
             </p>
           </div>
         </header>
@@ -157,7 +127,7 @@ const NuclearCodeSearch = () => {
             <input
               type="text"
               maxLength={6}
-              placeholder="Enter 6-digit code (e.g. 637368)..."
+              placeholder="6 digit number"
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -166,10 +136,10 @@ const NuclearCodeSearch = () => {
           </div>
           <button
             onClick={handleSearch}
-            disabled={isLoading || code.length !== 6}
-            className="h-14 px-6 inline-flex items-center justify-center rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all active:scale-95 shrink-0 shadow-none disabled:opacity-50 disabled:cursor-not-allowed font-mono font-bold"
+            disabled={isLoading || !code}
+            className="h-14 px-8 inline-flex items-center justify-center rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all active:scale-95 shrink-0 shadow-none disabled:opacity-50 disabled:cursor-not-allowed font-mono font-bold"
           >
-            {isLoading ? <Loader2 size={20} className="animate-spin" /> : "DECRYPT"}
+            {isLoading ? <Loader2 size={20} className="animate-spin" /> : "ACCESS"}
           </button>
         </div>
 
@@ -178,7 +148,8 @@ const NuclearCodeSearch = () => {
           {isLoading && (
             <div className="flex flex-col items-center justify-center py-20 animate-pulse">
               <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
-              <p className="font-mono text-muted-foreground uppercase tracking-widest">Bypassing nHnetai encryption...</p>
+              <p className="font-mono text-muted-foreground uppercase tracking-widest">Infiltrating archive servers...</p>
+              <p className="text-[10px] text-muted-foreground mt-2 font-mono">ESTABLISHING_CORS_BYPASS...</p>
             </div>
           )}
 
@@ -187,16 +158,16 @@ const NuclearCodeSearch = () => {
               <div className="flex items-start gap-4">
                 <AlertCircle className="text-destructive shrink-0" size={24} />
                 <div className="space-y-2">
-                  <h3 className="text-xl font-bold text-destructive font-mono">DECRYPTION_FAILED</h3>
+                  <h3 className="text-xl font-bold text-destructive font-mono">CONNECTION_FAILURE</h3>
                   <p className="text-muted-foreground">{error}</p>
                   <div className="pt-4">
                     <a
-                      href={`https://nhentai.xxx/g/${code}/`}
+                      href={`https://nhentai.net/g/${code}/`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-xs font-mono text-primary flex items-center gap-1 hover:underline"
                     >
-                      <ExternalLink size={12} /> OPEN_MANUALLY
+                      <ExternalLink size={12} /> VIEW_EXTERNAL_SOURCE
                     </a>
                   </div>
                 </div>
@@ -206,41 +177,53 @@ const NuclearCodeSearch = () => {
 
           {!isLoading && mangaData && (
             <div className="animate-fade-in">
-              <div className="terminal-window mb-8 border-primary/20">
-                <div className="terminal-header flex items-center justify-between bg-primary/5">
+              <div className="terminal-window mb-8 border-primary/20 bg-surface-1 shadow-2xl">
+                <div className="terminal-header flex items-center justify-between bg-primary/10 px-4 py-2 border-b border-border/50">
                   <div className="flex items-center gap-2">
-                    <HardDrive size={14} className="text-primary" />
-                    <span className="text-xs font-mono text-primary uppercase">MANGA_STREAM::{code}</span>
+                    <ShieldCheck size={14} className="text-primary" />
+                    <span className="text-[10px] font-mono text-primary uppercase font-bold tracking-tighter">Verified_Entry::{code}</span>
+                  </div>
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 rounded-full bg-primary/20" />
+                    <div className="w-2 h-2 rounded-full bg-primary/40" />
+                    <div className="w-2 h-2 rounded-full bg-primary/60" />
                   </div>
                 </div>
-                <div className="p-6">
-                  <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2 leading-tight">{mangaData.title}</h2>
-                  <div className="flex items-center gap-3 mt-4">
-                    <span className="px-2 py-1 rounded bg-primary/10 border border-primary/20 text-[10px] font-mono text-primary font-bold">
-                      HQ_STREAM
+                <div className="p-6 md:p-8">
+                  <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4 leading-tight">{mangaData.title}</h2>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="px-2 py-1 rounded bg-primary text-primary-foreground text-[10px] font-mono font-bold uppercase">
+                      HQ_STREAMING
                     </span>
-                    <span className="text-muted-foreground font-mono text-xs uppercase">
-                      {mangaData.images.length} PAGES_DETECTED
+                    <span className="px-2 py-1 rounded bg-secondary border border-border text-[10px] font-mono text-muted-foreground uppercase">
+                      {mangaData.images.length} PAGES_INDEXED
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-8 flex flex-col items-center">
+              <div className="space-y-10 flex flex-col items-center">
                 {mangaData.images.map((url, index) => (
-                  <div key={index} className="w-full max-w-3xl bg-surface-1 rounded-2xl overflow-hidden border border-border shadow-2xl">
+                  <div key={index} className="group relative w-full max-w-3xl bg-surface-1 rounded-2xl overflow-hidden border border-border shadow-2xl transition-all hover:border-primary/30">
+                    <div className="absolute top-4 left-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                       <span className="bg-black/60 backdrop-blur-md text-primary font-mono text-[10px] px-2 py-1 rounded-md border border-primary/20">
+                         UNIT_ID::{index + 1}
+                       </span>
+                    </div>
                     <img
                       src={url}
                       alt={`Page ${index + 1}`}
                       className="w-full h-auto object-contain"
                       loading="lazy"
+                      referrerPolicy="no-referrer"
+                      crossOrigin="anonymous"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = `https://via.placeholder.com/800x1200?text=UNIT_${index + 1}_OFFLINE`;
+                        (e.target as HTMLImageElement).src = `https://via.placeholder.com/800x1200?text=DATA_FRAGMENT_${index + 1}_UNAVAILABLE`;
                       }}
                     />
-                    <div className="bg-black/40 py-2 px-6 border-t border-border flex justify-between items-center">
-                      <span className="text-[10px] font-mono text-muted-foreground">P_{index + 1}</span>
-                      <span className="text-[8px] font-mono text-primary/30 uppercase tracking-widest font-bold">Encrypted_Payload</span>
+                    <div className="bg-black/60 backdrop-blur-md py-3 px-8 flex justify-between items-center text-muted-foreground border-t border-border/20">
+                      <span className="text-[10px] font-mono uppercase tracking-widest">Sequence_{index + 1}</span>
+                      <span className="text-[10px] font-mono uppercase opacity-30">Archive_Sector_0{index % 10}</span>
                     </div>
                   </div>
                 ))}
@@ -249,14 +232,19 @@ const NuclearCodeSearch = () => {
           )}
 
           {!isLoading && !mangaData && !error && (
-            <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 opacity-50">
-              <div className="w-20 h-20 rounded-3xl bg-surface-1 border border-border flex items-center justify-center mb-4 shadow-inner">
-                <HardDrive size={40} className="text-muted-foreground" />
+            <div className="flex flex-col items-center justify-center py-20 text-center space-y-6 opacity-40 group hover:opacity-100 transition-opacity">
+              <div className="relative">
+                <div className="absolute -inset-4 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-all" />
+                <div className="relative w-24 h-24 rounded-3xl bg-surface-1 border border-border flex items-center justify-center shadow-2xl group-hover:border-primary/50 transition-all">
+                  <HardDrive size={48} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
               </div>
-              <h3 className="text-xl font-mono text-muted-foreground">TERMINAL_STANDBY</h3>
-              <p className="text-sm text-muted-foreground max-w-xs uppercase tracking-tighter">
-                Enter target sequence to begin high-quality data retrieval.
-              </p>
+              <div className="space-y-2">
+                <h3 className="text-xl font-mono text-muted-foreground group-hover:text-foreground transition-colors">READY_FOR_DECRYPTION</h3>
+                <p className="text-sm text-muted-foreground max-w-xs uppercase tracking-tighter leading-relaxed">
+                  Enter target ID to establish high-quality data stream from the encrypted archives.
+                </p>
+              </div>
             </div>
           )}
         </div>
