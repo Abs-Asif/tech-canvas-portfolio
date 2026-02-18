@@ -65,6 +65,11 @@ const pages = [
     path: "/GA",
     title: "Duck Maze Runner",
     description: "2D maze game. Uses Recursive Backtracking algorithms for procedural level generation and HTML5 Canvas for rendering."
+  },
+  {
+    path: "/SE",
+    title: "Search Engine",
+    description: "Google-inspired search interface. Utilizes SerpApi to fetch and display live search results in a familiar web-standard layout."
   }
 ];
 
