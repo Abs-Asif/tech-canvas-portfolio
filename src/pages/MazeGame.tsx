@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { ArrowLeft, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, Trophy } from "lucide-react";
+import { ArrowLeft, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, Trophy, Settings, X, Maximize, Minimize } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -12,18 +12,19 @@ interface Position {
 }
 
 // --- Constants ---
-const VIEWPORT_SIZE = 9; // Number of cells visible in each dimension
+const INITIAL_VIEWPORT_SIZE = 13; // Number of cells visible in each dimension
 const INITIAL_MAZE_SIZE = 11; // Must be odd
 const DUCK_COLOR = "#FFD700";
 const BEAK_COLOR = "#FF8C00";
 const EYE_COLOR = "#000000";
 
 // --- Duck Pixel Art (8x8) ---
+// 1: Duck Color, 2: Beak Color, 3: Eye Color
 const DUCK_PIXELS = {
   right: [
     [0, 0, 0, 1, 1, 1, 0, 0],
-    [0, 0, 1, 1, 1, 1, 1, 0],
-    [0, 0, 1, 1, 0, 1, 2, 2],
+    [0, 0, 1, 1, 3, 1, 1, 0],
+    [0, 0, 1, 1, 1, 1, 2, 2],
     [0, 0, 1, 1, 1, 1, 0, 0],
     [1, 1, 1, 1, 1, 1, 1, 0],
     [1, 1, 1, 1, 1, 1, 1, 0],
@@ -32,8 +33,8 @@ const DUCK_PIXELS = {
   ],
   left: [
     [0, 0, 1, 1, 1, 0, 0, 0],
-    [0, 1, 1, 1, 1, 1, 0, 0],
-    [2, 2, 1, 0, 1, 1, 1, 0],
+    [0, 1, 1, 3, 1, 1, 0, 0],
+    [2, 2, 1, 1, 1, 1, 1, 0],
     [0, 0, 1, 1, 1, 1, 1, 0],
     [0, 1, 1, 1, 1, 1, 1, 1],
     [0, 1, 1, 1, 1, 1, 1, 1],
@@ -53,7 +54,7 @@ const DUCK_PIXELS = {
   down: [
     [0, 0, 1, 1, 1, 1, 0, 0],
     [0, 1, 1, 1, 1, 1, 1, 0],
-    [0, 1, 0, 1, 1, 0, 1, 0],
+    [0, 1, 3, 1, 1, 3, 1, 0],
     [0, 1, 1, 2, 2, 1, 1, 0],
     [1, 1, 1, 1, 1, 1, 1, 1],
     [1, 1, 1, 1, 1, 1, 1, 1],
@@ -77,9 +78,16 @@ const MazeGame = () => {
   const [isMoving, setIsMoving] = useState(false);
   const [frame, setFrame] = useState(0);
   const [gameWon, setGameWon] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [randomExit, setRandomExit] = useState(() => {
+    return localStorage.getItem("maze_random_exit") === "true";
+  });
+  const [jumpLevel, setJumpLevel] = useState("");
+  const moveIntervalRef = useRef<any>(null);
 
   // --- Maze Generation (Recursive Backtracking) ---
-  const generateMaze = useCallback((lvl: number) => {
+  const generateMaze = useCallback((lvl: number, isRandomExit: boolean) => {
     const size = INITIAL_MAZE_SIZE + (lvl - 1) * 2;
     const newMaze: CellType[][] = Array(size).fill(null).map(() => Array(size).fill("wall"));
 
@@ -121,10 +129,22 @@ const MazeGame = () => {
       }
     }
 
-    // Set Exit (usually bottom right-ish)
-    let exitPos = { x: size - 2, y: size - 2 };
-    // Make sure it's reachable (it should be in this algorithm)
-    newMaze[exitPos.y][exitPos.x] = "exit";
+    // Set Exit
+    if (isRandomExit) {
+      const paths: Position[] = [];
+      for (let y = 1; y < size - 1; y++) {
+        for (let x = 1; x < size - 1; x++) {
+          if (newMaze[y][x] === "path" && (x > size / 2 || y > size / 2)) {
+            paths.push({ x, y });
+          }
+        }
+      }
+      const exitPos = paths[Math.floor(Math.random() * paths.length)];
+      newMaze[exitPos.y][exitPos.x] = "exit";
+    } else {
+      let exitPos = { x: size - 2, y: size - 2 };
+      newMaze[exitPos.y][exitPos.x] = "exit";
+    }
 
     setMaze(newMaze);
     setPlayerPos({ x: 1, y: 1 });
@@ -132,12 +152,13 @@ const MazeGame = () => {
   }, []);
 
   useEffect(() => {
-    generateMaze(level);
-  }, [level, generateMaze]);
+    generateMaze(level, randomExit);
+  }, [level, randomExit, generateMaze]);
 
   useEffect(() => {
     localStorage.setItem("maze_level", level.toString());
-  }, [level]);
+    localStorage.setItem("maze_random_exit", randomExit.toString());
+  }, [level, randomExit]);
 
   // --- Animation Loop ---
   useEffect(() => {
@@ -157,27 +178,28 @@ const MazeGame = () => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    const viewportSize = level > 100 ? 21 : INITIAL_VIEWPORT_SIZE;
     const canvasWidth = canvas.width;
-    const cellSize = canvasWidth / VIEWPORT_SIZE;
+    const cellSize = canvasWidth / viewportSize;
 
     // Camera follow
-    let cameraX = playerPos.x - Math.floor(VIEWPORT_SIZE / 2);
-    let cameraY = playerPos.y - Math.floor(VIEWPORT_SIZE / 2);
+    let cameraX = playerPos.x - Math.floor(viewportSize / 2);
+    let cameraY = playerPos.y - Math.floor(viewportSize / 2);
 
     // Clamp camera
-    cameraX = Math.max(0, Math.min(cameraX, maze[0].length - VIEWPORT_SIZE));
-    cameraY = Math.max(0, Math.min(cameraY, maze.length - VIEWPORT_SIZE));
+    cameraX = Math.max(0, Math.min(cameraX, maze[0].length - viewportSize));
+    cameraY = Math.max(0, Math.min(cameraY, maze.length - viewportSize));
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Draw Maze
-    for (let y = 0; y < VIEWPORT_SIZE; y++) {
-      for (let x = 0; x < VIEWPORT_SIZE; x++) {
+    for (let y = 0; y < viewportSize; y++) {
+      for (let x = 0; x < viewportSize; x++) {
         const mazeX = cameraX + x;
         const mazeY = cameraY + y;
-        const cell = maze[mazeY][mazeX];
+        const cell = maze[mazeY]?.[mazeX];
 
-        if (cell === "wall") {
+        if (!cell || cell === "wall") {
           ctx.fillStyle = "#1a1a1a";
           ctx.fillRect(x * cellSize, y * cellSize, cellSize + 0.5, cellSize + 0.5);
 
@@ -218,8 +240,7 @@ const MazeGame = () => {
 
         let color = DUCK_COLOR;
         if (pixel === 2) color = BEAK_COLOR;
-        if (pixel === 1 && colIdx === 4 && direction === 'right') color = EYE_COLOR;
-        if (pixel === 1 && colIdx === 3 && direction === 'left') color = EYE_COLOR;
+        if (pixel === 3) color = EYE_COLOR;
 
         ctx.fillStyle = color;
         const x = Math.floor(playerScreenX + colIdx * pixelSize);
@@ -233,32 +254,69 @@ const MazeGame = () => {
   }, [maze, playerPos, direction, frame, isMoving]);
 
   // --- Movement ---
-  const move = (dir: "up" | "down" | "left" | "right") => {
-    if (gameWon) return;
+  const move = useCallback((dir: "up" | "down" | "left" | "right") => {
+    if (gameWon || maze.length === 0) return;
 
     setDirection(dir);
     setIsMoving(true);
     setTimeout(() => setIsMoving(false), 150);
 
-    const newPos = { ...playerPos };
+    setPlayerPos(prev => {
+      const newPos = { ...prev };
     if (dir === "up") newPos.y -= 1;
     if (dir === "down") newPos.y += 1;
     if (dir === "left") newPos.x -= 1;
     if (dir === "right") newPos.x += 1;
 
-    if (
-      newPos.x >= 0 &&
-      newPos.x < maze[0].length &&
-      newPos.y >= 0 &&
-      newPos.y < maze.length &&
-      maze[newPos.y][newPos.x] !== "wall"
-    ) {
-      setPlayerPos(newPos);
-      if (maze[newPos.y][newPos.x] === "exit") {
-        setGameWon(true);
-        setTimeout(() => {
-          setLevel(l => l + 1);
-        }, 1500);
+      if (
+        newPos.x >= 0 &&
+        newPos.x < maze[0].length &&
+        newPos.y >= 0 &&
+        newPos.y < maze.length &&
+        maze[newPos.y][newPos.x] !== "wall"
+      ) {
+        if (maze[newPos.y][newPos.x] === "exit") {
+          setGameWon(true);
+          setTimeout(() => {
+            setLevel(l => l + 1);
+          }, 1500);
+        }
+        return newPos;
+      }
+      return prev;
+    });
+  }, [gameWon, maze]);
+
+  const startMoving = (dir: "up" | "down" | "left" | "right") => {
+    stopMoving();
+    move(dir);
+    moveIntervalRef.current = setInterval(() => move(dir), 150);
+  };
+
+  const stopMoving = () => {
+    if (moveIntervalRef.current) {
+      clearInterval(moveIntervalRef.current);
+      moveIntervalRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      stopMoving();
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
       }
     }
   };
@@ -289,12 +347,30 @@ const MazeGame = () => {
           <h1 className="text-sm font-bold text-primary">MAZE_RUNNER_v1.0</h1>
           <p className="text-[10px] text-muted-foreground">LVL: {level}</p>
         </div>
-        <button
-          onClick={() => generateMaze(level)}
-          className="p-2 rounded-lg bg-surface-1 border border-border hover:border-accent transition-all active:scale-95 group"
-        >
-          <RotateCcw size={18} className="text-muted-foreground group-hover:text-accent" />
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={toggleFullscreen}
+            className="p-2 rounded-lg bg-surface-1 border border-border hover:border-primary transition-all active:scale-95 group hidden md:flex"
+          >
+            {isFullscreen ? (
+              <Minimize size={18} className="text-muted-foreground group-hover:text-primary" />
+            ) : (
+              <Maximize size={18} className="text-muted-foreground group-hover:text-primary" />
+            )}
+          </button>
+          <button
+            onClick={() => setShowSettings(true)}
+            className="p-2 rounded-lg bg-surface-1 border border-border hover:border-primary transition-all active:scale-95 group"
+          >
+            <Settings size={18} className="text-muted-foreground group-hover:text-primary" />
+          </button>
+          <button
+            onClick={() => generateMaze(level, randomExit)}
+            className="p-2 rounded-lg bg-surface-1 border border-border hover:border-accent transition-all active:scale-95 group"
+          >
+            <RotateCcw size={18} className="text-muted-foreground group-hover:text-accent" />
+          </button>
+        </div>
       </header>
 
       {/* Game Screen */}
@@ -315,21 +391,90 @@ const MazeGame = () => {
         )}
       </div>
 
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowSettings(false)} />
+          <div className="relative w-full max-w-xs bg-zinc-900 border border-white/10 rounded-2xl p-6 space-y-6 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-primary">SETTINGS</h3>
+              <button onClick={() => setShowSettings(false)} className="text-muted-foreground hover:text-white">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs">RANDOM_EXIT</span>
+                <button
+                  onClick={() => setRandomExit(!randomExit)}
+                  className={cn(
+                    "w-10 h-5 rounded-full transition-colors relative",
+                    randomExit ? "bg-primary" : "bg-zinc-700"
+                  )}
+                >
+                  <div className={cn(
+                    "absolute top-1 w-3 h-3 rounded-full bg-white transition-all",
+                    randomExit ? "left-6" : "left-1"
+                  )} />
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-xs">JUMP_TO_LEVEL</span>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={jumpLevel}
+                    onChange={(e) => setJumpLevel(e.target.value)}
+                    placeholder="Level #"
+                    className="flex-1 bg-black border border-white/10 rounded-lg px-3 py-2 text-sm text-primary focus:outline-none focus:border-primary"
+                  />
+                  <button
+                    onClick={() => {
+                      const lvl = parseInt(jumpLevel);
+                      if (!isNaN(lvl) && lvl > 0) {
+                        setLevel(lvl);
+                        setShowSettings(false);
+                      }
+                    }}
+                    className="px-4 py-2 bg-primary text-black font-bold rounded-lg text-xs"
+                  >
+                    GO
+                  </button>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  toggleFullscreen();
+                  setShowSettings(false);
+                }}
+                className="w-full flex items-center justify-center gap-2 py-3 border border-white/10 rounded-xl text-xs font-bold md:hidden"
+              >
+                {isFullscreen ? <Minimize size={14} /> : <Maximize size={14} />}
+                {isFullscreen ? "EXIT_FULLSCREEN" : "ENTER_FULLSCREEN"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Controller Area */}
       <div className="h-[300px] shrink-0 bg-zinc-900/50 border-t border-white/10 p-6 flex items-center justify-center relative">
         <div className="grid grid-cols-3 grid-rows-3 gap-2 w-full max-w-[240px]">
           <div />
-          <ControlButton icon={ChevronUp} onClick={() => move("up")} className="col-start-2" />
+          <ControlButton icon={ChevronUp} onStart={() => startMoving("up")} onStop={stopMoving} className="col-start-2" />
           <div />
 
-          <ControlButton icon={ChevronLeft} onClick={() => move("left")} className="row-start-2 col-start-1" />
+          <ControlButton icon={ChevronLeft} onStart={() => startMoving("left")} onStop={stopMoving} className="row-start-2 col-start-1" />
           <div className="flex items-center justify-center">
              <div className="w-4 h-4 rounded-full bg-primary/20 animate-pulse" />
           </div>
-          <ControlButton icon={ChevronRight} onClick={() => move("right")} className="row-start-2 col-start-3" />
+          <ControlButton icon={ChevronRight} onStart={() => startMoving("right")} onStop={stopMoving} className="row-start-2 col-start-3" />
 
           <div />
-          <ControlButton icon={ChevronDown} onClick={() => move("down")} className="row-start-3 col-start-2" />
+          <ControlButton icon={ChevronDown} onStart={() => startMoving("down")} onStop={stopMoving} className="row-start-3 col-start-2" />
           <div />
         </div>
 
@@ -342,10 +487,13 @@ const MazeGame = () => {
   );
 };
 
-const ControlButton = ({ icon: Icon, onClick, className }: { icon: any, onClick: () => void, className?: string }) => (
+const ControlButton = ({ icon: Icon, onStart, onStop, className }: { icon: any, onStart: () => void, onStop: () => void, className?: string }) => (
   <button
-    onMouseDown={(e) => { e.preventDefault(); onClick(); }}
-    onTouchStart={(e) => { e.preventDefault(); onClick(); }}
+    onMouseDown={(e) => { e.preventDefault(); onStart(); }}
+    onTouchStart={(e) => { e.preventDefault(); onStart(); }}
+    onMouseUp={(e) => { e.preventDefault(); onStop(); }}
+    onMouseLeave={(e) => { e.preventDefault(); onStop(); }}
+    onTouchEnd={(e) => { e.preventDefault(); onStop(); }}
     className={cn(
       "w-full aspect-square rounded-2xl bg-zinc-800 border-2 border-zinc-700 flex items-center justify-center active:scale-95 active:bg-primary/20 active:border-primary transition-all shadow-lg",
       className
