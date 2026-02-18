@@ -1,5 +1,5 @@
 import { Section } from "./Section";
-import { Globe, ExternalLink, Code2, Type } from "lucide-react";
+import { Globe, ExternalLink, Code2, Type, Gamepad2 } from "lucide-react";
 import dictionaryLogo from "@/assets/dictionary.png";
 import { Link } from "react-router-dom";
 
@@ -24,6 +24,16 @@ const projects = [
     description: "This is a project of mine, where I'm trying to create a Google fonts alternative, but for Bangla fonts specifically. Just use the CSS code to implement in your website. No need to manually download and upload font files anymore.",
     isBangla: false,
     tech: ["Fonts", "Open Source", "Vite", "React", "CSS"]
+  },
+  {
+    title: "Duck Maze Runner",
+    filename: "maze_runner.exe",
+    type: "Web Game",
+    icon: Gamepad2,
+    url: "/GA",
+    description: "A mobile-first, minimalist pixel-art maze game. Navigate the yellow duck through auto-generated mazes that get larger as you progress.",
+    isBangla: false,
+    tech: ["Game", "Canvas", "Algorithms", "Vite", "React"]
   },
 ];
 

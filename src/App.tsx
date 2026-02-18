@@ -15,6 +15,7 @@ import Automation from "./pages/Automation";
 import VideoAutomation from "./pages/VideoAutomation";
 import AiChat from "./pages/AiChat";
 import NuclearCodeSearch from "./pages/NuclearCodeSearch";
+import MazeGame from "./pages/MazeGame";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
           <Route path="/FV" element={<VideoAutomation />} />
           <Route path="/AI" element={<AiChat />} />
           <Route path="/HN" element={<NuclearCodeSearch />} />
+          <Route path="/GA" element={<MazeGame />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
