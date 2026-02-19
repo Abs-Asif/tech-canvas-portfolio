@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { ArrowLeft, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, Trophy, Settings, X, Maximize, Minimize, Zap, Route, Shuffle, Ghost, ShoppingBag, Dices, Radar, Expand, Play, Waypoints, Footprints, Flame, RefreshCcw, Snowflake, Eye, Bomb, Compass, Palette, Scaling, Binary, Skull, Clock, ArrowDownUp, Music, Map, History, Infinity, Shirt, Hash } from "lucide-react";
+import { ArrowLeft, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, Trophy, Settings, X, Maximize, Minimize, Zap, Route, Shuffle, Ghost, ShoppingBag, Dices, Radar, Expand, Play, Waypoints, Footprints, Flame, RefreshCcw, Snowflake, Eye, Bomb, Compass, Palette, Scaling, Binary, Skull, Clock, ArrowDownUp, Music, Map, History, Infinity, Shirt, Hash, Wind, Activity, Scan, ArrowUpCircle, FastForward } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -250,6 +250,11 @@ const MazeGame = () => {
     minimap: localStorage.getItem("maze_mod_minimap") === "true",
     ghostTrail: localStorage.getItem("maze_mod_ghosttrail") === "true",
     portalMaster: localStorage.getItem("maze_mod_portalmaster") === "true",
+    blinkDash: localStorage.getItem("maze_mod_blink") === "true",
+    staticNoise: localStorage.getItem("maze_mod_static") === "true",
+    xRayVision: localStorage.getItem("maze_mod_xray") === "true",
+    doubleJump: localStorage.getItem("maze_mod_doublejump") === "true",
+    speedDemon: localStorage.getItem("maze_mod_speeddemon") === "true",
   });
 
   const [customization, setCustomization] = useState(() => {
@@ -265,6 +270,7 @@ const MazeGame = () => {
   });
 
   const [lastPos, setLastPos] = useState<Position[]>([]);
+  const [continuousMoveCount, setContinuousMoveCount] = useState(0);
   const [exitPos, setExitPos] = useState<Position>({ x: 0, y: 0 });
   const [portals, setPortals] = useState<Position[]>([]);
   const [visitedCells, setVisitedCells] = useState<Set<string>>(new Set());
@@ -437,6 +443,7 @@ const MazeGame = () => {
 
     setDirection(dir);
     setIsMoving(true);
+    setContinuousMoveCount(c => c + 1);
     setTimeout(() => setIsMoving(false), 150);
 
     setPlayerPos(prev => {
@@ -503,11 +510,21 @@ const MazeGame = () => {
 
       const nextPos = getNext(currentPos);
       if (!isWall(nextPos)) {
-        if (maze[nextPos.y][nextPos.x] === "exit") {
+        let finalPos = nextPos;
+
+        // Double Jump: Move 2 cells at once if path is clear
+        if (mods.doubleJump) {
+          const secondPos = getNext(nextPos);
+          if (!isWall(secondPos)) {
+            finalPos = secondPos;
+          }
+        }
+
+        if (maze[finalPos.y][finalPos.x] === "exit") {
           setGameWon(true);
           setTimeout(() => setLevel(l => l + 1), 1500);
         }
-        const teleported = handlePortal(nextPos);
+        const teleported = handlePortal(finalPos);
 
         if (mods.ghostTrail) {
           setLastPos(lp => [prev, ...lp].slice(0, 5));
@@ -612,6 +629,11 @@ const MazeGame = () => {
     localStorage.setItem("maze_mod_minimap", mods.minimap.toString());
     localStorage.setItem("maze_mod_ghosttrail", mods.ghostTrail.toString());
     localStorage.setItem("maze_mod_portalmaster", mods.portalMaster.toString());
+    localStorage.setItem("maze_mod_blink", mods.blinkDash.toString());
+    localStorage.setItem("maze_mod_static", mods.staticNoise.toString());
+    localStorage.setItem("maze_mod_xray", mods.xRayVision.toString());
+    localStorage.setItem("maze_mod_doublejump", mods.doubleJump.toString());
+    localStorage.setItem("maze_mod_speeddemon", mods.speedDemon.toString());
   }, [level, mods]);
 
   useEffect(() => {
@@ -659,6 +681,36 @@ const MazeGame = () => {
     }
 
     const discoColor = `hsl(${frame * 6}, 70%, 50%)`;
+
+    // Draw X-Ray Vision (Exit indicator through walls)
+    if (mods.xRayVision && exitPos) {
+      const screenX = (exitPos.x - cameraX) * cellSize + cellSize / 2;
+      const screenY = (exitPos.y - cameraY) * cellSize + cellSize / 2;
+
+      const onScreen = screenX >= 0 && screenX <= canvasWidth && screenY >= 0 && screenY <= canvas.height;
+
+      if (!onScreen) {
+        // Draw indicator at edge
+        const edgeX = Math.max(20, Math.min(canvasWidth - 20, screenX));
+        const edgeY = Math.max(20, Math.min(canvas.height - 20, screenY));
+        ctx.fillStyle = "#22C55E";
+        ctx.beginPath();
+        ctx.arc(edgeX, edgeY, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 0.5;
+        ctx.strokeStyle = "#22C55E";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(edgeX - 8, edgeY - 8, 16, 16);
+        ctx.globalAlpha = 1.0;
+      } else {
+        // Pulse at exit location even if "under" walls
+        ctx.save();
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = "#22C55E";
+        ctx.fillRect((exitPos.x - cameraX) * cellSize, (exitPos.y - cameraY) * cellSize, cellSize, cellSize);
+        ctx.restore();
+      }
+    }
 
     // Draw Maze
     for (let y = 0; y < viewportSize; y++) {
@@ -882,11 +934,21 @@ const MazeGame = () => {
       ctx.fillRect(canvasWidth - mapSize - 10 + playerPos.x * mapCellSize, 10 + playerPos.y * mapCellSize, mapCellSize, mapCellSize);
     }
 
+    if (mods.staticNoise) {
+      ctx.save();
+      ctx.fillStyle = "#fff";
+      for (let i = 0; i < 100; i++) {
+        ctx.globalAlpha = Math.random() * 0.1;
+        ctx.fillRect(Math.random() * canvasWidth, Math.random() * canvas.height, 2, 2);
+      }
+      ctx.restore();
+    }
+
     if (mods.gravityFlip) {
       ctx.restore();
     }
 
-  }, [maze, playerPos, direction, frame, pulseCycle, isMoving, mods, solutionPath, level, customization, lastPos]);
+  }, [maze, playerPos, direction, frame, pulseCycle, isMoving, mods, solutionPath, level, customization, lastPos, continuousMoveCount]);
 
   const breakWall = useCallback(() => {
     if (!mods.wallBreaker || maze.length === 0) return;
@@ -906,6 +968,36 @@ const MazeGame = () => {
       });
     }
   }, [mods.wallBreaker, maze, playerPos, direction]);
+
+  const blinkDash = useCallback(() => {
+    if (!mods.blinkDash || maze.length === 0) return;
+
+    setPlayerPos(prev => {
+      const getNext = (p: Position) => {
+        const n = { ...p };
+        if (direction === "up") n.y -= 2;
+        if (direction === "down") n.y += 2;
+        if (direction === "left") n.x -= 2;
+        if (direction === "right") n.x += 2;
+        return n;
+      };
+
+      const nextPos = getNext(prev);
+      // Check if target is inside maze bounds and not a wall
+      if (
+        nextPos.x > 0 && nextPos.x < maze[0].length - 1 &&
+        nextPos.y > 0 && nextPos.y < maze.length - 1 &&
+        maze[nextPos.y][nextPos.x] !== "wall"
+      ) {
+        if (maze[nextPos.y][nextPos.x] === "exit") {
+          setGameWon(true);
+          setTimeout(() => setLevel(l => l + 1), 1500);
+        }
+        return nextPos;
+      }
+      return prev;
+    });
+  }, [mods.blinkDash, maze, direction]);
 
   const sonicBoom = useCallback(() => {
     if (!mods.sonicBoom || maze.length === 0) return;
@@ -928,12 +1020,27 @@ const MazeGame = () => {
   const startMoving = (dir: "up" | "down" | "left" | "right") => {
     stopMoving();
     move(dir);
-    let interval = mods.superSpeed ? 80 : 150;
-    if (mods.timeWarp) interval *= 2;
-    moveIntervalRef.current = setInterval(() => move(dir), interval);
+    const updateInterval = () => {
+      let interval = mods.superSpeed ? 80 : 150;
+      if (mods.timeWarp) interval *= 2;
+
+      if (mods.speedDemon) {
+        // Decrease interval (increase speed) based on continuous move count
+        const speedBoost = Math.min(100, continuousMoveCount * 5);
+        interval = Math.max(50, interval - speedBoost);
+      }
+
+      if (moveIntervalRef.current) clearInterval(moveIntervalRef.current);
+      moveIntervalRef.current = setInterval(() => {
+        move(dir);
+        if (mods.speedDemon) updateInterval(); // Dynamically update speed
+      }, interval);
+    };
+    updateInterval();
   };
 
   const stopMoving = () => {
+    setContinuousMoveCount(0);
     if (moveIntervalRef.current) {
       clearInterval(moveIntervalRef.current);
       moveIntervalRef.current = null;
@@ -1432,64 +1539,147 @@ const MazeGame = () => {
                 active={mods.portalMaster}
                 onToggle={() => setMods(m => ({ ...m, portalMaster: !m.portalMaster }))}
               />
+
+              {/* Blink Dash */}
+              <ModItem
+                icon={Wind}
+                title="BLINK DASH"
+                description="Teleport 2 cells forward, bypassing any walls."
+                pros="Instant shortcuts through any barrier."
+                cons="Requires manual trigger in the controller."
+                active={mods.blinkDash}
+                onToggle={() => setMods(m => ({ ...m, blinkDash: !m.blinkDash }))}
+              />
+
+              {/* Static Noise */}
+              <ModItem
+                icon={Activity}
+                title="STATIC NOISE"
+                description="Adds flickering visual interference to the maze."
+                pros="A true test of your concentration."
+                cons="Highly disorienting visuals."
+                active={mods.staticNoise}
+                onToggle={() => setMods(m => ({ ...m, staticNoise: !m.staticNoise }))}
+              />
+
+              {/* X-Ray Vision */}
+              <ModItem
+                icon={Scan}
+                title="X-RAY VISION"
+                description="The exit location is always visible through walls."
+                pros="Always know exactly where to go."
+                cons="Reduces the need for exploration."
+                active={mods.xRayVision}
+                onToggle={() => setMods(m => ({ ...m, xRayVision: !m.xRayVision }))}
+              />
+
+              {/* Double Jump */}
+              <ModItem
+                icon={ArrowUpCircle}
+                title="DOUBLE JUMP"
+                description="Move 2 cells at once when the path is clear."
+                pros="Vastly increases your travel speed."
+                cons="Harder to control in tight corridors."
+                active={mods.doubleJump}
+                onToggle={() => setMods(m => ({ ...m, doubleJump: !m.doubleJump }))}
+              />
+
+              {/* Speed Demon */}
+              <ModItem
+                icon={FastForward}
+                title="SPEED DEMON"
+                description="Movement speed scales up the longer you move."
+                pros="Incredible top speeds for long straights."
+                cons="Becomes difficult to react at high speed."
+                active={mods.speedDemon}
+                onToggle={() => setMods(m => ({ ...m, speedDemon: !m.speedDemon }))}
+              />
             </div>
           </div>
         </div>
       )}
 
       {/* Controller Area */}
-      <div className="h-[300px] shrink-0 bg-zinc-900/50 border-t border-white/10 p-6 flex items-center justify-center relative">
-        <div className="grid grid-cols-3 grid-rows-3 gap-2 w-full max-w-[240px]">
+      <div className="h-[280px] shrink-0 bg-zinc-900/50 border-t border-white/10 p-4 flex items-center justify-center relative gap-6">
+        {/* Left Side Buttons */}
+        <div className="flex flex-col gap-4">
           <button
             onClick={() => setShowModStore(true)}
-            className="w-full aspect-square rounded-2xl bg-zinc-800/50 border border-white/5 flex items-center justify-center active:scale-95 hover:bg-zinc-800 transition-all"
+            className="p-3 rounded-xl bg-zinc-800/50 border border-white/5 flex items-center justify-center active:scale-95 hover:bg-zinc-800 transition-all shadow-lg"
+            title="Mod Store"
           >
-            <ShoppingBag size={20} className="text-primary" />
+            <ShoppingBag size={18} className="text-primary" />
           </button>
-          <ControlButton icon={ChevronUp} onStart={() => startMoving("up")} onStop={stopMoving} className="col-start-2" />
           <button
-            onClick={toggleFullscreen}
-            className="w-full aspect-square rounded-2xl bg-zinc-800/50 border border-white/5 flex items-center justify-center active:scale-95 hover:bg-zinc-800 transition-all"
+            onClick={() => setShowEditDuck(true)}
+            className="p-3 rounded-xl bg-zinc-800/50 border border-white/5 flex items-center justify-center active:scale-95 hover:bg-zinc-800 transition-all shadow-lg"
+            title="Edit Duck"
           >
-            {isFullscreen ? <Minimize size={20} className="text-zinc-400" /> : <Maximize size={20} className="text-zinc-400" />}
+            <Shirt size={18} className="text-zinc-400" />
           </button>
+        </div>
+
+        {/* D-Pad Controller */}
+        <div className="grid grid-cols-3 grid-rows-3 gap-2 w-full max-w-[200px]">
+          <div />
+          <ControlButton icon={ChevronUp} onStart={() => startMoving("up")} onStop={stopMoving} className="col-start-2" />
+          <div />
 
           <ControlButton icon={ChevronLeft} onStart={() => startMoving("left")} onStop={stopMoving} className="row-start-2 col-start-1" />
           <div className="flex flex-col items-center justify-center gap-1">
              {mods.wallBreaker && (
                <button
                  onClick={breakWall}
-                 className="w-10 h-10 rounded-xl bg-red-500/20 border border-red-500/50 flex items-center justify-center active:scale-95 transition-all"
+                 className="w-8 h-8 rounded-lg bg-red-500/20 border border-red-500/50 flex items-center justify-center active:scale-95 transition-all"
+                 title="Wall Breaker"
                >
-                 <Flame size={16} className="text-red-500" />
+                 <Flame size={14} className="text-red-500" />
                </button>
              )}
              {mods.sonicBoom && (
                <button
                  onClick={sonicBoom}
-                 className="w-10 h-10 rounded-xl bg-orange-500/20 border border-orange-500/50 flex items-center justify-center active:scale-95 transition-all"
+                 className="w-8 h-8 rounded-lg bg-orange-500/20 border border-orange-500/50 flex items-center justify-center active:scale-95 transition-all"
+                 title="Sonic Boom"
                >
-                 <Bomb size={16} className="text-orange-500" />
+                 <Bomb size={14} className="text-orange-500" />
                </button>
              )}
-             {!mods.wallBreaker && !mods.sonicBoom && (
+             {mods.blinkDash && (
+               <button
+                 onClick={blinkDash}
+                 className="w-8 h-8 rounded-lg bg-blue-500/20 border border-blue-500/50 flex items-center justify-center active:scale-95 transition-all"
+                 title="Blink Dash"
+               >
+                 <Wind size={14} className="text-blue-500" />
+               </button>
+             )}
+             {!mods.wallBreaker && !mods.sonicBoom && !mods.blinkDash && (
                <div className="w-4 h-4 rounded-full bg-primary/20 animate-pulse" />
              )}
           </div>
           <ControlButton icon={ChevronRight} onStart={() => startMoving("right")} onStop={stopMoving} className="row-start-2 col-start-3" />
 
-          <button
-            onClick={() => setShowEditDuck(true)}
-            className="w-full aspect-square rounded-2xl bg-zinc-800/50 border border-white/5 flex items-center justify-center active:scale-95 hover:bg-zinc-800 transition-all"
-          >
-            <Shirt size={20} className="text-zinc-400" />
-          </button>
+          <div />
           <ControlButton icon={ChevronDown} onStart={() => startMoving("down")} onStop={stopMoving} className="row-start-3 col-start-2" />
+          <div />
+        </div>
+
+        {/* Right Side Buttons */}
+        <div className="flex flex-col gap-4">
+          <button
+            onClick={toggleFullscreen}
+            className="p-3 rounded-xl bg-zinc-800/50 border border-white/5 flex items-center justify-center active:scale-95 hover:bg-zinc-800 transition-all shadow-lg"
+            title="Fullscreen"
+          >
+            {isFullscreen ? <Minimize size={18} className="text-zinc-400" /> : <Maximize size={18} className="text-zinc-400" />}
+          </button>
           <button
             onClick={() => setShowLevelJump(true)}
-            className="w-full aspect-square rounded-2xl bg-zinc-800/50 border border-white/5 flex items-center justify-center active:scale-95 hover:bg-zinc-800 transition-all"
+            className="p-3 rounded-xl bg-zinc-800/50 border border-white/5 flex items-center justify-center active:scale-95 hover:bg-zinc-800 transition-all shadow-lg"
+            title="Level Jump"
           >
-            <Hash size={20} className="text-zinc-400" />
+            <Hash size={18} className="text-zinc-400" />
           </button>
         </div>
 
@@ -1552,11 +1742,11 @@ const ControlButton = ({ icon: Icon, onStart, onStop, className }: { icon: any, 
     onMouseLeave={(e) => { e.preventDefault(); onStop(); }}
     onTouchEnd={(e) => { e.preventDefault(); onStop(); }}
     className={cn(
-      "w-full aspect-square rounded-2xl bg-zinc-800 border-2 border-zinc-700 flex items-center justify-center active:scale-95 active:bg-primary/20 active:border-primary transition-all shadow-lg",
+      "w-full aspect-square rounded-xl bg-zinc-800/80 border border-zinc-700 flex items-center justify-center active:scale-95 active:bg-primary/20 active:border-primary transition-all shadow-lg",
       className
     )}
   >
-    <Icon size={32} className="text-zinc-400" />
+    <Icon size={24} className="text-zinc-400" />
   </button>
 );
 
