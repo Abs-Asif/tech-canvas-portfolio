@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { ArrowLeft, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, Trophy, Settings, X, Maximize, Minimize } from "lucide-react";
+import { ArrowLeft, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, Trophy, Settings, X, Maximize, Minimize, Zap, Route, Shuffle, Ghost, ShoppingBag, Dices } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -80,9 +80,15 @@ const MazeGame = () => {
   const [gameWon, setGameWon] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [randomExit, setRandomExit] = useState(() => {
-    return localStorage.getItem("maze_random_exit") === "true";
+  const [showModStore, setShowModStore] = useState(false);
+  const [mods, setMods] = useState({
+    superSpeed: localStorage.getItem("maze_mod_speed") === "true",
+    ghostDuck: localStorage.getItem("maze_mod_ghost") === "true",
+    pathFinder: localStorage.getItem("maze_mod_path") === "true",
+    randomExit: localStorage.getItem("maze_random_exit") === "true",
   });
+  const [exitPos, setExitPos] = useState<Position>({ x: 0, y: 0 });
+  const [solutionPath, setSolutionPath] = useState<Position[]>([]);
   const [jumpLevel, setJumpLevel] = useState("");
   const moveIntervalRef = useRef<any>(null);
 
@@ -130,6 +136,7 @@ const MazeGame = () => {
     }
 
     // Set Exit
+    let finalExitPos: Position;
     if (isRandomExit) {
       const paths: Position[] = [];
       for (let y = 1; y < size - 1; y++) {
@@ -139,26 +146,86 @@ const MazeGame = () => {
           }
         }
       }
-      const exitPos = paths[Math.floor(Math.random() * paths.length)];
-      newMaze[exitPos.y][exitPos.x] = "exit";
+      finalExitPos = paths[Math.floor(Math.random() * paths.length)];
+      newMaze[finalExitPos.y][finalExitPos.x] = "exit";
     } else {
-      let exitPos = { x: size - 2, y: size - 2 };
-      newMaze[exitPos.y][exitPos.x] = "exit";
+      finalExitPos = { x: size - 2, y: size - 2 };
+      newMaze[finalExitPos.y][finalExitPos.x] = "exit";
     }
 
     setMaze(newMaze);
+    setExitPos(finalExitPos);
     setPlayerPos({ x: 1, y: 1 });
     setGameWon(false);
   }, []);
 
+  const randomizePosition = useCallback(() => {
+    if (maze.length === 0) return;
+    const paths: Position[] = [];
+    for (let y = 1; y < maze.length - 1; y++) {
+      for (let x = 1; x < maze[0].length - 1; x++) {
+        if (maze[y][x] === "path") {
+          paths.push({ x, y });
+        }
+      }
+    }
+    if (paths.length > 0) {
+      const newPos = paths[Math.floor(Math.random() * paths.length)];
+      setPlayerPos(newPos);
+    }
+  }, [maze]);
+
   useEffect(() => {
-    generateMaze(level, randomExit);
-  }, [level, randomExit, generateMaze]);
+    generateMaze(level, mods.randomExit);
+  }, [level, mods.randomExit, generateMaze]);
+
+  const findPath = useCallback((currentMaze: CellType[][], start: Position, end: Position) => {
+    if (!currentMaze.length || !start || !end) return [];
+    const queue: { pos: Position; path: Position[] }[] = [{ pos: start, path: [start] }];
+    const visited = new Set<string>();
+    visited.add(`${start.x},${start.y}`);
+
+    while (queue.length > 0) {
+      const { pos, path } = queue.shift()!;
+      if (pos.x === end.x && pos.y === end.y) return path;
+
+      const dirs = [
+        { dx: 0, dy: -1 }, { dx: 0, dy: 1 },
+        { dx: -1, dy: 0 }, { dx: 1, dy: 0 },
+      ];
+
+      for (const d of dirs) {
+        const nx = pos.x + d.dx;
+        const ny = pos.y + d.dy;
+        if (
+          nx >= 0 && nx < currentMaze[0].length &&
+          ny >= 0 && ny < currentMaze.length &&
+          currentMaze[ny][nx] !== "wall" &&
+          !visited.has(`${nx},${ny}`)
+        ) {
+          visited.add(`${nx},${ny}`);
+          queue.push({ pos: { x: nx, y: ny }, path: [...path, { x: nx, y: ny }] });
+        }
+      }
+    }
+    return [];
+  }, []);
+
+  useEffect(() => {
+    if (mods.pathFinder && maze.length > 0 && exitPos) {
+      setSolutionPath(findPath(maze, playerPos, exitPos));
+    } else {
+      setSolutionPath([]);
+    }
+  }, [mods.pathFinder, playerPos, maze, exitPos, findPath]);
 
   useEffect(() => {
     localStorage.setItem("maze_level", level.toString());
-    localStorage.setItem("maze_random_exit", randomExit.toString());
-  }, [level, randomExit]);
+    localStorage.setItem("maze_random_exit", mods.randomExit.toString());
+    localStorage.setItem("maze_mod_speed", mods.superSpeed.toString());
+    localStorage.setItem("maze_mod_ghost", mods.ghostDuck.toString());
+    localStorage.setItem("maze_mod_path", mods.pathFinder.toString());
+  }, [level, mods]);
 
   // --- Animation Loop ---
   useEffect(() => {
@@ -224,6 +291,24 @@ const MazeGame = () => {
       }
     }
 
+    // Draw Path Finder
+    if (mods.pathFinder && solutionPath.length > 0) {
+      ctx.strokeStyle = "#22C55E";
+      ctx.lineWidth = 3;
+      ctx.globalAlpha = 0.4;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      solutionPath.forEach((p, i) => {
+        const screenX = (p.x - cameraX) * cellSize + cellSize / 2;
+        const screenY = (p.y - cameraY) * cellSize + cellSize / 2;
+        if (i === 0) ctx.moveTo(screenX, screenY);
+        else ctx.lineTo(screenX, screenY);
+      });
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1.0;
+    }
+
     // Draw Player (Duck)
     const playerScreenX = (playerPos.x - cameraX) * cellSize;
     const playerScreenY = (playerPos.y - cameraY) * cellSize;
@@ -262,35 +347,72 @@ const MazeGame = () => {
     setTimeout(() => setIsMoving(false), 150);
 
     setPlayerPos(prev => {
-      const newPos = { ...prev };
-    if (dir === "up") newPos.y -= 1;
-    if (dir === "down") newPos.y += 1;
-    if (dir === "left") newPos.x -= 1;
-    if (dir === "right") newPos.x += 1;
+      let currentPos = { ...prev };
 
-      if (
-        newPos.x >= 0 &&
-        newPos.x < maze[0].length &&
-        newPos.y >= 0 &&
-        newPos.y < maze.length &&
-        maze[newPos.y][newPos.x] !== "wall"
-      ) {
-        if (maze[newPos.y][newPos.x] === "exit") {
-          setGameWon(true);
-          setTimeout(() => {
-            setLevel(l => l + 1);
-          }, 1500);
+      const getNext = (p: Position) => {
+        const n = { ...p };
+        if (dir === "up") n.y -= 1;
+        if (dir === "down") n.y += 1;
+        if (dir === "left") n.x -= 1;
+        if (dir === "right") n.x += 1;
+        return n;
+      };
+
+      const isWall = (p: Position) => {
+        if (p.x < 0 || p.x >= maze[0].length || p.y < 0 || p.y >= maze.length) return true;
+        return maze[p.y][p.x] === "wall";
+      };
+
+      if (mods.ghostDuck) {
+        let nextPos = getNext(currentPos);
+        if (isWall(nextPos)) {
+          while (isWall(nextPos)) {
+            nextPos = getNext(nextPos);
+            if (nextPos.x < 0 || nextPos.x >= maze[0].length || nextPos.y < 0 || nextPos.y >= maze.length) {
+              return prev;
+            }
+          }
         }
-        return newPos;
+        if (maze[nextPos.y][nextPos.x] === "exit") {
+          setGameWon(true);
+          setTimeout(() => setLevel(l => l + 1), 1500);
+        }
+        return nextPos;
+      }
+
+      if (mods.superSpeed) {
+        let nextPos = getNext(currentPos);
+        while (!isWall(nextPos)) {
+          currentPos = nextPos;
+          if (maze[currentPos.y][currentPos.x] === "exit") break;
+          nextPos = getNext(currentPos);
+        }
+        if (currentPos.x === prev.x && currentPos.y === prev.y) return prev;
+
+        if (maze[currentPos.y][currentPos.x] === "exit") {
+          setGameWon(true);
+          setTimeout(() => setLevel(l => l + 1), 1500);
+        }
+        return currentPos;
+      }
+
+      const nextPos = getNext(currentPos);
+      if (!isWall(nextPos)) {
+        if (maze[nextPos.y][nextPos.x] === "exit") {
+          setGameWon(true);
+          setTimeout(() => setLevel(l => l + 1), 1500);
+        }
+        return nextPos;
       }
       return prev;
     });
-  }, [gameWon, maze]);
+  }, [gameWon, maze, mods]);
 
   const startMoving = (dir: "up" | "down" | "left" | "right") => {
     stopMoving();
     move(dir);
-    moveIntervalRef.current = setInterval(() => move(dir), 150);
+    const interval = mods.superSpeed ? 80 : 150;
+    moveIntervalRef.current = setInterval(() => move(dir), interval);
   };
 
   const stopMoving = () => {
@@ -365,7 +487,7 @@ const MazeGame = () => {
             <Settings size={18} className="text-muted-foreground group-hover:text-primary" />
           </button>
           <button
-            onClick={() => generateMaze(level, randomExit)}
+            onClick={() => generateMaze(level, mods.randomExit)}
             className="p-2 rounded-lg bg-surface-1 border border-border hover:border-accent transition-all active:scale-95 group"
           >
             <RotateCcw size={18} className="text-muted-foreground group-hover:text-accent" />
@@ -404,21 +526,16 @@ const MazeGame = () => {
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs">RANDOM_EXIT</span>
-                <button
-                  onClick={() => setRandomExit(!randomExit)}
-                  className={cn(
-                    "w-10 h-5 rounded-full transition-colors relative",
-                    randomExit ? "bg-primary" : "bg-zinc-700"
-                  )}
-                >
-                  <div className={cn(
-                    "absolute top-1 w-3 h-3 rounded-full bg-white transition-all",
-                    randomExit ? "left-6" : "left-1"
-                  )} />
-                </button>
-              </div>
+              <button
+                onClick={() => {
+                  setShowSettings(false);
+                  setShowModStore(true);
+                }}
+                className="w-full flex items-center justify-center gap-2 py-3 bg-primary/10 border border-primary/20 rounded-xl text-xs font-bold text-primary hover:bg-primary/20 transition-all"
+              >
+                <ShoppingBag size={14} />
+                MOD_STORE
+              </button>
 
               <div className="space-y-2">
                 <span className="text-xs">JUMP_TO_LEVEL</span>
@@ -460,6 +577,95 @@ const MazeGame = () => {
         </div>
       )}
 
+      {/* Mod Store Modal */}
+      {showModStore && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowModStore(false)} />
+          <div className="relative w-full max-w-sm bg-zinc-900 border border-white/10 rounded-2xl p-6 space-y-6 animate-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh] no-scrollbar">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-primary flex items-center gap-2 text-sm">
+                <ShoppingBag size={18} />
+                MOD_STORE
+              </h3>
+              <button onClick={() => setShowModStore(false)} className="text-muted-foreground hover:text-white">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="grid gap-3">
+              {/* Super Speed */}
+              <ModItem
+                icon={Zap}
+                title="SUPER SPEED"
+                description="Duck runs faster and overshoots until hitting a wall."
+                pros="Significantly faster movement."
+                cons="Cannot stop at junctions; must hit a wall to turn."
+                active={mods.superSpeed}
+                onToggle={() => setMods(m => ({ ...m, superSpeed: !m.superSpeed }))}
+              />
+
+              {/* Random Placement */}
+              <div className="bg-black/40 border border-white/5 rounded-xl p-3 space-y-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-zinc-800 text-primary">
+                      <Dices size={18} />
+                    </div>
+                    <div>
+                      <h4 className="text-[11px] font-bold">RANDOM PLACEMENT</h4>
+                      <p className="text-[9px] text-muted-foreground mt-0.5">Spawn the duck randomly anywhere in the maze.</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={randomizePosition}
+                    className="px-3 py-1 bg-primary text-black text-[9px] font-bold rounded-lg hover:bg-primary/90 active:scale-95 transition-all"
+                  >
+                    ACTIVATE
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[8px]">
+                  <div className="text-green-500/80">PROS:: CAN BYPASS LARGE SECTIONS.</div>
+                  <div className="text-red-500/80">CONS:: MIGHT TELEPORT FURTHER AWAY.</div>
+                </div>
+              </div>
+
+              {/* Path Finder */}
+              <ModItem
+                icon={Route}
+                title="PATH FINDER"
+                description="Show the optimal path to the exit."
+                pros="Guaranteed route to the finish."
+                cons="Removes the challenge of exploration."
+                active={mods.pathFinder}
+                onToggle={() => setMods(m => ({ ...m, pathFinder: !m.pathFinder }))}
+              />
+
+              {/* Random Exit */}
+              <ModItem
+                icon={Shuffle}
+                title="RANDOM EXIT"
+                description="Exit spawns at a random path location."
+                pros="More unpredictable level generation."
+                cons="Exit might be closer than expected."
+                active={mods.randomExit}
+                onToggle={() => setMods(m => ({ ...m, randomExit: !m.randomExit }))}
+              />
+
+              {/* Ghost Duck */}
+              <ModItem
+                icon={Ghost}
+                title="GHOST DUCK"
+                description="Phase through walls to reach adjacent paths."
+                pros="Can take shortcuts through walls."
+                cons="Cannot stop inside walls; must reach a path."
+                active={mods.ghostDuck}
+                onToggle={() => setMods(m => ({ ...m, ghostDuck: !m.ghostDuck }))}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Controller Area */}
       <div className="h-[300px] shrink-0 bg-zinc-900/50 border-t border-white/10 p-6 flex items-center justify-center relative">
         <div className="grid grid-cols-3 grid-rows-3 gap-2 w-full max-w-[240px]">
@@ -486,6 +692,48 @@ const MazeGame = () => {
     </div>
   );
 };
+
+interface ModItemProps {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+  pros: string;
+  cons: string;
+  active: boolean;
+  onToggle: () => void;
+}
+
+const ModItem = ({ icon: Icon, title, description, pros, cons, active, onToggle }: ModItemProps) => (
+  <div className="bg-black/40 border border-white/5 rounded-xl p-3 space-y-3">
+    <div className="flex items-start justify-between gap-4">
+      <div className="flex items-center gap-3">
+        <div className={cn("p-2 rounded-lg bg-zinc-800", active ? "text-primary" : "text-zinc-500")}>
+          <Icon size={18} />
+        </div>
+        <div>
+          <h4 className="text-[11px] font-bold">{title}</h4>
+          <p className="text-[9px] text-muted-foreground mt-0.5">{description}</p>
+        </div>
+      </div>
+      <button
+        onClick={onToggle}
+        className={cn(
+          "w-8 h-4 rounded-full transition-colors relative shrink-0 mt-1",
+          active ? "bg-primary" : "bg-zinc-700"
+        )}
+      >
+        <div className={cn(
+          "absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all",
+          active ? "left-[18px]" : "left-0.5"
+        )} />
+      </button>
+    </div>
+    <div className="grid grid-cols-2 gap-2 text-[8px]">
+      <div className="text-green-500/80 uppercase">PROS:: {pros}</div>
+      <div className="text-red-500/80 uppercase">CONS:: {cons}</div>
+    </div>
+  </div>
+);
 
 const ControlButton = ({ icon: Icon, onStart, onStop, className }: { icon: any, onStart: () => void, onStop: () => void, className?: string }) => (
   <button
