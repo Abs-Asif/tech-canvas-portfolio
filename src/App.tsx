@@ -18,6 +18,7 @@ import NuclearCodeSearch from "./pages/NuclearCodeSearch";
 import MazeGame from "./pages/MazeGame";
 import SearchEngine from "./pages/SearchEngine";
 import IslamicServices from "./pages/IslamicServices";
+import HeeraStore from "./pages/HeeraStore/HeeraStore";
 import Sitemap from "./pages/Sitemap";
 import NotFound from "./pages/NotFound";
 
@@ -45,6 +46,7 @@ const App = () => (
           <Route path="/GA" element={<MazeGame />} />
           <Route path="/SE" element={<SearchEngine />} />
           <Route path="/IS" element={<IslamicServices />} />
+          <Route path="/EC/*" element={<HeeraStore />} />
           <Route path="/sitemap" element={<Sitemap />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
