@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { ArrowLeft, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, Trophy, Settings, X, Maximize, Minimize, Zap, Route, Shuffle, Ghost, ShoppingBag, Dices } from "lucide-react";
+import { ArrowLeft, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, Trophy, Settings, X, Maximize, Minimize, Zap, Route, Shuffle, Ghost, ShoppingBag, Dices, Radar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -77,6 +77,7 @@ const MazeGame = () => {
   const [direction, setDirection] = useState<"up" | "down" | "left" | "right">("down");
   const [isMoving, setIsMoving] = useState(false);
   const [frame, setFrame] = useState(0);
+  const [pulseCycle, setPulseCycle] = useState(0);
   const [gameWon, setGameWon] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -86,6 +87,7 @@ const MazeGame = () => {
     ghostDuck: localStorage.getItem("maze_mod_ghost") === "true",
     pathFinder: localStorage.getItem("maze_mod_path") === "true",
     randomExit: localStorage.getItem("maze_random_exit") === "true",
+    visionPulse: localStorage.getItem("maze_mod_vision") === "true",
   });
   const [exitPos, setExitPos] = useState<Position>({ x: 0, y: 0 });
   const [solutionPath, setSolutionPath] = useState<Position[]>([]);
@@ -225,6 +227,7 @@ const MazeGame = () => {
     localStorage.setItem("maze_mod_speed", mods.superSpeed.toString());
     localStorage.setItem("maze_mod_ghost", mods.ghostDuck.toString());
     localStorage.setItem("maze_mod_path", mods.pathFinder.toString());
+    localStorage.setItem("maze_mod_vision", mods.visionPulse.toString());
   }, [level, mods]);
 
   // --- Animation Loop ---
@@ -232,6 +235,7 @@ const MazeGame = () => {
     let animationFrameId: number;
     const animate = () => {
       setFrame(f => (f + 1) % 60);
+      setPulseCycle(p => (p + 1) % 180); // 3 second cycle at 60fps
       animationFrameId = requestAnimationFrame(animate);
     };
     animate();
@@ -313,6 +317,39 @@ const MazeGame = () => {
     const playerScreenX = (playerPos.x - cameraX) * cellSize;
     const playerScreenY = (playerPos.y - cameraY) * cellSize;
 
+    // Draw Vision Pulse Darkness
+    if (mods.visionPulse) {
+      const playerCenterX = playerScreenX + cellSize / 2;
+      const playerCenterY = playerScreenY + cellSize / 2;
+
+      let revealRadius = cellSize * 1.2; // Min visibility around duck
+      if (pulseCycle < 60) {
+        // Expanding pulse effect
+        revealRadius = (pulseCycle / 60) * canvasWidth * 1.2;
+      }
+
+      ctx.save();
+      ctx.fillStyle = "#000000";
+      ctx.globalAlpha = 0.98;
+      ctx.beginPath();
+      ctx.rect(0, 0, canvas.width, canvas.height);
+      ctx.arc(playerCenterX, playerCenterY, revealRadius, 0, Math.PI * 2, true);
+      ctx.fill();
+      ctx.restore();
+
+      // Draw a subtle pulse ring
+      if (pulseCycle < 60) {
+        ctx.save();
+        ctx.strokeStyle = "#22C55E";
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 1 - (pulseCycle / 60);
+        ctx.beginPath();
+        ctx.arc(playerCenterX, playerCenterY, revealRadius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
     const pixelSize = cellSize / 8;
     const duckPixels = DUCK_PIXELS[direction];
 
@@ -336,7 +373,7 @@ const MazeGame = () => {
       });
     });
 
-  }, [maze, playerPos, direction, frame, isMoving]);
+  }, [maze, playerPos, direction, frame, pulseCycle, isMoving, mods, solutionPath, level]);
 
   // --- Movement ---
   const move = useCallback((dir: "up" | "down" | "left" | "right") => {
@@ -660,6 +697,17 @@ const MazeGame = () => {
                 cons="Cannot stop inside walls; must reach a path."
                 active={mods.ghostDuck}
                 onToggle={() => setMods(m => ({ ...m, ghostDuck: !m.ghostDuck }))}
+              />
+
+              {/* Vision Pulse */}
+              <ModItem
+                icon={Radar}
+                title="VISION PULSE"
+                description="The maze is dark, revealed only by periodic sonar pulses."
+                pros="Adds a thrilling, high-stakes atmosphere."
+                cons="Extremely difficult to navigate in the dark."
+                active={mods.visionPulse}
+                onToggle={() => setMods(m => ({ ...m, visionPulse: !m.visionPulse }))}
               />
             </div>
           </div>
