@@ -16,7 +16,7 @@ const HeeraStore: React.FC = () => {
       <HeeraLayout>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/category/:id" element={<Category />} />
+          <Route path="/category/:categoryId" element={<Category />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/search" element={<Search />} />
           <Route path="/cart" element={<Cart />} />
