@@ -75,6 +75,11 @@ const pages = [
     path: "/IS",
     title: "Islamic Services",
     description: "Comprehensive religious toolkit. Features prayer times, fasting schedules, zakat calculation, and Asma-ul-Husna using data from IslamicAPI."
+  },
+  {
+    path: "/EC",
+    title: "Heera Store",
+    description: "Premium mobile e-commerce experience. A professional clothing store in Bangla featuring product categories, dynamic search, shopping cart, and order tracking."
   }
 ];
 
