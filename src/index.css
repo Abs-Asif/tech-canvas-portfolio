@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Scheherazade+New&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -197,6 +197,10 @@
 
   .font-mono {
     font-family: 'JetBrains Mono', monospace;
+  }
+
+  .font-arabic {
+    font-family: 'Scheherazade New', serif;
   }
 
   /* Apply Kalpurush to Bangla text */

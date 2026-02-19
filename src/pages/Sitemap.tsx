@@ -70,6 +70,11 @@ const pages = [
     path: "/SE",
     title: "Search Engine",
     description: "Google-inspired search interface. Utilizes SerpApi to fetch and display live search results in a familiar web-standard layout."
+  },
+  {
+    path: "/IS",
+    title: "Islamic Services",
+    description: "Comprehensive religious toolkit. Features prayer times, fasting schedules, zakat calculation, and Asma-ul-Husna using data from IslamicAPI."
   }
 ];
 
