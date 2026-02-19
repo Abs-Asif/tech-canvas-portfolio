@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { ArrowLeft, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, Trophy, Settings, X, Maximize, Minimize, Zap, Route, Shuffle, Ghost, ShoppingBag, Dices, Radar } from "lucide-react";
+import { ArrowLeft, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, Trophy, Settings, X, Maximize, Minimize, Zap, Route, Shuffle, Ghost, ShoppingBag, Dices, Radar, Expand, Play, Waypoints, Footprints } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -88,8 +88,14 @@ const MazeGame = () => {
     pathFinder: localStorage.getItem("maze_mod_path") === "true",
     randomExit: localStorage.getItem("maze_random_exit") === "true",
     visionPulse: localStorage.getItem("maze_mod_vision") === "true",
+    eagleEye: localStorage.getItem("maze_mod_eagle") === "true",
+    autoPilot: localStorage.getItem("maze_mod_auto") === "true",
+    warpPortals: localStorage.getItem("maze_mod_warp") === "true",
+    trailBlazer: localStorage.getItem("maze_mod_trail") === "true",
   });
   const [exitPos, setExitPos] = useState<Position>({ x: 0, y: 0 });
+  const [portals, setPortals] = useState<Position[]>([]);
+  const [visitedCells, setVisitedCells] = useState<Set<string>>(new Set());
   const [solutionPath, setSolutionPath] = useState<Position[]>([]);
   const [jumpLevel, setJumpLevel] = useState("");
   const moveIntervalRef = useRef<any>(null);
@@ -155,9 +161,27 @@ const MazeGame = () => {
       newMaze[finalExitPos.y][finalExitPos.x] = "exit";
     }
 
+    // Set Portals
+    const paths: Position[] = [];
+    for (let y = 1; y < size - 1; y++) {
+      for (let x = 1; x < size - 1; x++) {
+        if (newMaze[y][x] === "path" && !(x === 1 && y === 1) && !(x === finalExitPos.x && y === finalExitPos.y)) {
+          paths.push({ x, y });
+        }
+      }
+    }
+    if (paths.length >= 2) {
+      const p1 = paths.splice(Math.floor(Math.random() * paths.length), 1)[0];
+      const p2 = paths.splice(Math.floor(Math.random() * paths.length), 1)[0];
+      setPortals([p1, p2]);
+    } else {
+      setPortals([]);
+    }
+
     setMaze(newMaze);
     setExitPos(finalExitPos);
     setPlayerPos({ x: 1, y: 1 });
+    setVisitedCells(new Set(["1,1"]));
     setGameWon(false);
   }, []);
 
@@ -213,13 +237,118 @@ const MazeGame = () => {
     return [];
   }, []);
 
+  // --- Movement ---
+  const move = useCallback((dir: "up" | "down" | "left" | "right") => {
+    if (gameWon || maze.length === 0) return;
+
+    setDirection(dir);
+    setIsMoving(true);
+    setTimeout(() => setIsMoving(false), 150);
+
+    setPlayerPos(prev => {
+      let currentPos = { ...prev };
+
+      const getNext = (p: Position) => {
+        const n = { ...p };
+        if (dir === "up") n.y -= 1;
+        if (dir === "down") n.y += 1;
+        if (dir === "left") n.x -= 1;
+        if (dir === "right") n.x += 1;
+        return n;
+      };
+
+      const isWall = (p: Position) => {
+        if (p.x < 0 || p.x >= maze[0].length || p.y < 0 || p.y >= maze.length) return true;
+        return maze[p.y][p.x] === "wall";
+      };
+
+      const handlePortal = (p: Position) => {
+        if (mods.warpPortals && portals.length === 2) {
+          if (p.x === portals[0].x && p.y === portals[0].y) return portals[1];
+          if (p.x === portals[1].x && p.y === portals[1].y) return portals[0];
+        }
+        return p;
+      };
+
+      if (mods.ghostDuck) {
+        let nextPos = getNext(currentPos);
+        if (isWall(nextPos)) {
+          while (isWall(nextPos)) {
+            nextPos = getNext(nextPos);
+            if (nextPos.x < 0 || nextPos.x >= maze[0].length || nextPos.y < 0 || nextPos.y >= maze.length) {
+              return prev;
+            }
+          }
+        }
+        if (maze[nextPos.y][nextPos.x] === "exit") {
+          setGameWon(true);
+          setTimeout(() => setLevel(l => l + 1), 1500);
+        }
+        const teleported = handlePortal(nextPos);
+        return teleported;
+      }
+
+      if (mods.superSpeed) {
+        let nextPos = getNext(currentPos);
+        while (!isWall(nextPos)) {
+          currentPos = nextPos;
+          if (maze[currentPos.y][currentPos.x] === "exit") break;
+          nextPos = getNext(currentPos);
+        }
+        if (currentPos.x === prev.x && currentPos.y === prev.y) return prev;
+
+        if (maze[currentPos.y][currentPos.x] === "exit") {
+          setGameWon(true);
+          setTimeout(() => setLevel(l => l + 1), 1500);
+        }
+        return currentPos;
+      }
+
+      const nextPos = getNext(currentPos);
+      if (!isWall(nextPos)) {
+        if (maze[nextPos.y][nextPos.x] === "exit") {
+          setGameWon(true);
+          setTimeout(() => setLevel(l => l + 1), 1500);
+        }
+        const teleported = handlePortal(nextPos);
+        return teleported;
+      }
+      return prev;
+    });
+  }, [gameWon, maze, mods]);
+
   useEffect(() => {
-    if (mods.pathFinder && maze.length > 0 && exitPos) {
+    if ((mods.pathFinder || mods.autoPilot) && maze.length > 0 && exitPos) {
       setSolutionPath(findPath(maze, playerPos, exitPos));
     } else {
       setSolutionPath([]);
     }
-  }, [mods.pathFinder, playerPos, maze, exitPos, findPath]);
+  }, [mods.pathFinder, mods.autoPilot, playerPos, maze, exitPos, findPath]);
+
+  useEffect(() => {
+    if (mods.autoPilot && !gameWon && solutionPath.length > 1) {
+      const timer = setTimeout(() => {
+        const nextCell = solutionPath[1];
+        if (nextCell.x > playerPos.x) move("right");
+        else if (nextCell.x < playerPos.x) move("left");
+        else if (nextCell.y > playerPos.y) move("down");
+        else if (nextCell.y < playerPos.y) move("up");
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [mods.autoPilot, gameWon, solutionPath, playerPos.x, playerPos.y, move]);
+
+  useEffect(() => {
+    if (mods.trailBlazer) {
+      setVisitedCells(v => {
+        const key = `${playerPos.x},${playerPos.y}`;
+        if (v.has(key)) return v;
+        const next = new Set(v);
+        next.add(key);
+        return next;
+      });
+    }
+  }, [playerPos.x, playerPos.y, mods.trailBlazer]);
 
   useEffect(() => {
     localStorage.setItem("maze_level", level.toString());
@@ -228,6 +357,10 @@ const MazeGame = () => {
     localStorage.setItem("maze_mod_ghost", mods.ghostDuck.toString());
     localStorage.setItem("maze_mod_path", mods.pathFinder.toString());
     localStorage.setItem("maze_mod_vision", mods.visionPulse.toString());
+    localStorage.setItem("maze_mod_eagle", mods.eagleEye.toString());
+    localStorage.setItem("maze_mod_auto", mods.autoPilot.toString());
+    localStorage.setItem("maze_mod_warp", mods.warpPortals.toString());
+    localStorage.setItem("maze_mod_trail", mods.trailBlazer.toString());
   }, [level, mods]);
 
   // --- Animation Loop ---
@@ -249,7 +382,7 @@ const MazeGame = () => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const viewportSize = level > 100 ? 21 : INITIAL_VIEWPORT_SIZE;
+    const viewportSize = mods.eagleEye ? 25 : (level > 100 ? 21 : INITIAL_VIEWPORT_SIZE);
     const canvasWidth = canvas.width;
     const cellSize = canvasWidth / viewportSize;
 
@@ -291,8 +424,37 @@ const MazeGame = () => {
         } else {
           ctx.fillStyle = "#0a0a0a";
           ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+
+          // Draw Trail Blazer
+          if (mods.trailBlazer && visitedCells.has(`${mazeX},${mazeY}`)) {
+            ctx.fillStyle = "#22C55E";
+            ctx.globalAlpha = 0.2;
+            ctx.fillRect(x * cellSize + 2, y * cellSize + 2, cellSize - 4, cellSize - 4);
+            ctx.globalAlpha = 1.0;
+          }
         }
       }
+    }
+
+    // Draw Warp Portals
+    if (mods.warpPortals && portals.length === 2) {
+      portals.forEach((p, i) => {
+        const screenX = (p.x - cameraX) * cellSize + cellSize / 2;
+        const screenY = (p.y - cameraY) * cellSize + cellSize / 2;
+        const pulse = Math.sin(frame * 0.1) * 0.3 + 0.7;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(screenX, screenY, (cellSize / 3) * pulse, 0, Math.PI * 2);
+        ctx.strokeStyle = i === 0 ? "#8B5CF6" : "#EC4899"; // Purple and Pink
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = i === 0 ? "#8B5CF6" : "#EC4899";
+        ctx.fill();
+        ctx.restore();
+      });
     }
 
     // Draw Path Finder
@@ -374,76 +536,6 @@ const MazeGame = () => {
     });
 
   }, [maze, playerPos, direction, frame, pulseCycle, isMoving, mods, solutionPath, level]);
-
-  // --- Movement ---
-  const move = useCallback((dir: "up" | "down" | "left" | "right") => {
-    if (gameWon || maze.length === 0) return;
-
-    setDirection(dir);
-    setIsMoving(true);
-    setTimeout(() => setIsMoving(false), 150);
-
-    setPlayerPos(prev => {
-      let currentPos = { ...prev };
-
-      const getNext = (p: Position) => {
-        const n = { ...p };
-        if (dir === "up") n.y -= 1;
-        if (dir === "down") n.y += 1;
-        if (dir === "left") n.x -= 1;
-        if (dir === "right") n.x += 1;
-        return n;
-      };
-
-      const isWall = (p: Position) => {
-        if (p.x < 0 || p.x >= maze[0].length || p.y < 0 || p.y >= maze.length) return true;
-        return maze[p.y][p.x] === "wall";
-      };
-
-      if (mods.ghostDuck) {
-        let nextPos = getNext(currentPos);
-        if (isWall(nextPos)) {
-          while (isWall(nextPos)) {
-            nextPos = getNext(nextPos);
-            if (nextPos.x < 0 || nextPos.x >= maze[0].length || nextPos.y < 0 || nextPos.y >= maze.length) {
-              return prev;
-            }
-          }
-        }
-        if (maze[nextPos.y][nextPos.x] === "exit") {
-          setGameWon(true);
-          setTimeout(() => setLevel(l => l + 1), 1500);
-        }
-        return nextPos;
-      }
-
-      if (mods.superSpeed) {
-        let nextPos = getNext(currentPos);
-        while (!isWall(nextPos)) {
-          currentPos = nextPos;
-          if (maze[currentPos.y][currentPos.x] === "exit") break;
-          nextPos = getNext(currentPos);
-        }
-        if (currentPos.x === prev.x && currentPos.y === prev.y) return prev;
-
-        if (maze[currentPos.y][currentPos.x] === "exit") {
-          setGameWon(true);
-          setTimeout(() => setLevel(l => l + 1), 1500);
-        }
-        return currentPos;
-      }
-
-      const nextPos = getNext(currentPos);
-      if (!isWall(nextPos)) {
-        if (maze[nextPos.y][nextPos.x] === "exit") {
-          setGameWon(true);
-          setTimeout(() => setLevel(l => l + 1), 1500);
-        }
-        return nextPos;
-      }
-      return prev;
-    });
-  }, [gameWon, maze, mods]);
 
   const startMoving = (dir: "up" | "down" | "left" | "right") => {
     stopMoving();
@@ -708,6 +800,50 @@ const MazeGame = () => {
                 cons="Extremely difficult to navigate in the dark."
                 active={mods.visionPulse}
                 onToggle={() => setMods(m => ({ ...m, visionPulse: !m.visionPulse }))}
+              />
+
+              {/* Eagle Eye */}
+              <ModItem
+                icon={Expand}
+                title="EAGLE EYE"
+                description="Zoom out to see a much larger portion of the maze."
+                pros="Easier to plan long routes."
+                cons="Smaller view; harder to see details."
+                active={mods.eagleEye}
+                onToggle={() => setMods(m => ({ ...m, eagleEye: !m.eagleEye }))}
+              />
+
+              {/* Auto-Pilot */}
+              <ModItem
+                icon={Play}
+                title="AUTO-PILOT"
+                description="The duck automatically moves toward the exit."
+                pros="Perfect for effortless navigation."
+                cons="Removes the challenge entirely."
+                active={mods.autoPilot}
+                onToggle={() => setMods(m => ({ ...m, autoPilot: !m.autoPilot }))}
+              />
+
+              {/* Warp Portals */}
+              <ModItem
+                icon={Waypoints}
+                title="WARP PORTALS"
+                description="Randomly spawns two interconnected teleportation portals."
+                pros="Can skip massive sections of the maze."
+                cons="Placement is random and might be inconvenient."
+                active={mods.warpPortals}
+                onToggle={() => setMods(m => ({ ...m, warpPortals: !m.warpPortals }))}
+              />
+
+              {/* Trail Blazer */}
+              <ModItem
+                icon={Footprints}
+                title="TRAIL BLAZER"
+                description="Leave a permanent glowing trail on visited cells."
+                pros="Excellent for tracking visited paths."
+                cons="Visual clutter in dense levels."
+                active={mods.trailBlazer}
+                onToggle={() => setMods(m => ({ ...m, trailBlazer: !m.trailBlazer }))}
               />
             </div>
           </div>
