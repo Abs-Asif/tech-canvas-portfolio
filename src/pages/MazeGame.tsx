@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { ArrowLeft, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, Trophy, Settings, X, Maximize, Minimize, Zap, Route, Shuffle, Ghost, ShoppingBag, Dices, Radar, Expand, Play, Waypoints, Footprints } from "lucide-react";
+import { ArrowLeft, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, Trophy, Settings, X, Maximize, Minimize, Zap, Route, Shuffle, Ghost, ShoppingBag, Dices, Radar, Expand, Play, Waypoints, Footprints, Flame } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -92,6 +92,7 @@ const MazeGame = () => {
     autoPilot: localStorage.getItem("maze_mod_auto") === "true",
     warpPortals: localStorage.getItem("maze_mod_warp") === "true",
     trailBlazer: localStorage.getItem("maze_mod_trail") === "true",
+    wallBreaker: localStorage.getItem("maze_mod_breaker") === "true",
   });
   const [exitPos, setExitPos] = useState<Position>({ x: 0, y: 0 });
   const [portals, setPortals] = useState<Position[]>([]);
@@ -361,6 +362,7 @@ const MazeGame = () => {
     localStorage.setItem("maze_mod_auto", mods.autoPilot.toString());
     localStorage.setItem("maze_mod_warp", mods.warpPortals.toString());
     localStorage.setItem("maze_mod_trail", mods.trailBlazer.toString());
+    localStorage.setItem("maze_mod_breaker", mods.wallBreaker.toString());
   }, [level, mods]);
 
   // --- Animation Loop ---
@@ -536,6 +538,25 @@ const MazeGame = () => {
     });
 
   }, [maze, playerPos, direction, frame, pulseCycle, isMoving, mods, solutionPath, level]);
+
+  const breakWall = useCallback(() => {
+    if (!mods.wallBreaker || maze.length === 0) return;
+
+    const targetX = playerPos.x + (direction === "left" ? -1 : direction === "right" ? 1 : 0);
+    const targetY = playerPos.y + (direction === "up" ? -1 : direction === "down" ? 1 : 0);
+
+    if (
+      targetX > 0 && targetX < maze[0].length - 1 &&
+      targetY > 0 && targetY < maze.length - 1 &&
+      maze[targetY][targetX] === "wall"
+    ) {
+      setMaze(prev => {
+        const next = [...prev.map(row => [...row])];
+        next[targetY][targetX] = "path";
+        return next;
+      });
+    }
+  }, [mods.wallBreaker, maze, playerPos, direction]);
 
   const startMoving = (dir: "up" | "down" | "left" | "right") => {
     stopMoving();
@@ -845,6 +866,17 @@ const MazeGame = () => {
                 active={mods.trailBlazer}
                 onToggle={() => setMods(m => ({ ...m, trailBlazer: !m.trailBlazer }))}
               />
+
+              {/* Wall Breaker */}
+              <ModItem
+                icon={Flame}
+                title="WALL BREAKER"
+                description="Fire a beam to break walls in front of you."
+                pros="Can create shortcuts through walls."
+                cons="Might bypass intended puzzle logic."
+                active={mods.wallBreaker}
+                onToggle={() => setMods(m => ({ ...m, wallBreaker: !m.wallBreaker }))}
+              />
             </div>
           </div>
         </div>
@@ -859,7 +891,16 @@ const MazeGame = () => {
 
           <ControlButton icon={ChevronLeft} onStart={() => startMoving("left")} onStop={stopMoving} className="row-start-2 col-start-1" />
           <div className="flex items-center justify-center">
-             <div className="w-4 h-4 rounded-full bg-primary/20 animate-pulse" />
+             {mods.wallBreaker ? (
+               <button
+                 onClick={breakWall}
+                 className="w-full aspect-square rounded-2xl bg-red-500/20 border-2 border-red-500/50 flex items-center justify-center active:scale-95 active:bg-red-500/40 active:border-red-500 transition-all shadow-lg"
+               >
+                 <Flame size={24} className="text-red-500 animate-pulse" />
+               </button>
+             ) : (
+               <div className="w-4 h-4 rounded-full bg-primary/20 animate-pulse" />
+             )}
           </div>
           <ControlButton icon={ChevronRight} onStart={() => startMoving("right")} onStop={stopMoving} className="row-start-2 col-start-3" />
 
