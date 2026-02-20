@@ -8,6 +8,7 @@ import { toast } from "sonner";
 const SJ = () => {
   const [title, setTitle] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [fontSize, setFontSize] = useState(80);
   const [isGenerating, setIsGenerating] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -30,7 +31,7 @@ const SJ = () => {
   const DATE_Y = GRAY_BAR_Y + GRAY_BAR_H / 2;
 
   const TITLE_X = CANVAS_WIDTH / 2;
-  const TITLE_Y = 850; // Below gray bar
+  const TITLE_Y = 830; // Adjusted for larger font
 
   const formatDate = (date: Date) => {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -48,9 +49,10 @@ const SJ = () => {
     const proxies = [
       (u: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
       (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+      (u: string) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
     ];
 
-    const isRestricted = url.includes('bangladeshguardian.com');
+    const isRestricted = url.includes('bangladeshguardian.com') || url.includes('backoffice.bangladeshguardian.com');
 
     if (!isRestricted) {
       try {
@@ -121,8 +123,11 @@ const SJ = () => {
     setIsGenerating(true);
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
+
+    // Clear canvas before drawing
+    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
     let userImgBlobUrl = '';
     try {
@@ -138,8 +143,9 @@ const SJ = () => {
 
       // 2. Ensure fonts are loaded
       await Promise.all([
-        document.fonts.load('bold 40px "Cambria"'),
-        document.fonts.load('13px "Cambria"')
+        document.fonts.load(`bold ${fontSize}px "Cambria"`),
+        document.fonts.load('13px "Cambria"'),
+        document.fonts.load('bold 24px "Cambria"')
       ]).catch(e => console.warn('Font loading failed:', e));
 
       // 3. Draw User Image
@@ -193,17 +199,43 @@ const SJ = () => {
       ctx.fillStyle = 'white';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
-      ctx.fillText(formatDate(new Date()), DATE_X, DATE_Y);
+      ctx.fillText(formatDate(new Date()).toUpperCase(), DATE_X, DATE_Y);
 
-      // 4. Draw Title
-      ctx.font = 'bold 40px "Cambria"';
+      // 5. Draw Title with Auto-scaling
+      let currentFontSize = fontSize;
       ctx.fillStyle = 'white';
       ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
 
       const lines = splitTitle(title);
+      const maxW = 980; // Allow some margin
+
+      const checkAndScale = () => {
+        ctx.font = `bold ${currentFontSize}px "Cambria"`;
+        if (lines[1]) {
+          const w1 = ctx.measureText(lines[0]).width;
+          const w2 = ctx.measureText(lines[1]).width;
+          const maxLineW = Math.max(w1, w2);
+          if (maxLineW > maxW) {
+            currentFontSize *= (maxW / maxLineW);
+            ctx.font = `bold ${currentFontSize}px "Cambria"`;
+          }
+        } else {
+          const w = ctx.measureText(lines[0]).width;
+          if (w > maxW) {
+            currentFontSize *= (maxW / w);
+            ctx.font = `bold ${currentFontSize}px "Cambria"`;
+          }
+        }
+      };
+
+      checkAndScale();
+
       if (lines[1]) {
-        ctx.fillText(lines[0], TITLE_X, TITLE_Y - 25);
-        ctx.fillText(lines[1], TITLE_X, TITLE_Y + 25);
+        // Use a slightly larger multiplier for line spacing to avoid overlap at large sizes
+        const spacing = currentFontSize * 0.6;
+        ctx.fillText(lines[0], TITLE_X, TITLE_Y - spacing);
+        ctx.fillText(lines[1], TITLE_X, TITLE_Y + spacing);
       } else {
         ctx.fillText(lines[0], TITLE_X, TITLE_Y);
       }
@@ -252,6 +284,18 @@ const SJ = () => {
                   placeholder="Enter photocard title..."
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
+                  className="bg-surface-2 border-border"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="fontSize">Font Size ({fontSize}px)</Label>
+                <Input
+                  id="fontSize"
+                  type="number"
+                  min="20"
+                  max="150"
+                  value={fontSize}
+                  onChange={(e) => setFontSize(parseInt(e.target.value) || 80)}
                   className="bg-surface-2 border-border"
                 />
               </div>
