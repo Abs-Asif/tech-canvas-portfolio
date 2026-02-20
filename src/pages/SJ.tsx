@@ -44,6 +44,42 @@ const SJ = () => {
     return `${dayName} | ${day} ${monthName} ${year}`;
   };
 
+  const fetchImageWithProxy = async (url: string): Promise<string> => {
+    const proxies = [
+      (u: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+      (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    ];
+
+    const isRestricted = url.includes('bangladeshguardian.com');
+
+    if (!isRestricted) {
+      try {
+        const response = await fetch(url, { mode: 'cors' });
+        if (response.ok) {
+          const blob = await response.blob();
+          return URL.createObjectURL(blob);
+        }
+      } catch (e) {
+        console.warn("Direct fetch failed, trying proxies...", e);
+      }
+    }
+
+    for (const proxy of proxies) {
+      try {
+        const proxiedUrl = proxy(url);
+        const response = await fetch(proxiedUrl);
+        if (response.ok) {
+          const blob = await response.blob();
+          return URL.createObjectURL(blob);
+        }
+      } catch (e) {
+        console.warn(`Proxy failed:`, e);
+      }
+    }
+
+    throw new Error("Failed to load image. Make sure your url is valid and allows cors.");
+  };
+
   const splitTitle = (text: string) => {
     if (!text.includes(' ')) return [text, ''];
 
@@ -86,6 +122,7 @@ const SJ = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    let userImgBlobUrl = '';
     try {
       // 1. Draw Template
       const template = new Image();
@@ -98,9 +135,9 @@ const SJ = () => {
       ctx.drawImage(template, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
       // 2. Draw User Image
+      userImgBlobUrl = await fetchImageWithProxy(imageUrl);
       const userImg = new Image();
-      userImg.crossOrigin = "anonymous";
-      userImg.src = imageUrl;
+      userImg.src = userImgBlobUrl;
       await new Promise((resolve, reject) => {
         userImg.onload = resolve;
         userImg.onerror = reject;
@@ -163,6 +200,9 @@ const SJ = () => {
       console.error(error);
       toast.error("Failed to load image. Make sure the URL is valid and allows CORS.");
     } finally {
+      if (userImgBlobUrl && userImgBlobUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(userImgBlobUrl);
+      }
       setIsGenerating(false);
     }
   };
