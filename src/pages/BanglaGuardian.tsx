@@ -25,6 +25,40 @@ interface LogEntry {
 const DB_NAME = 'BanglaGuardianDB';
 const STORE_NAME = 'photocards';
 
+export const censorText = (text: string) => {
+  if (!text) return text;
+  let censored = text;
+  const mappings: Record<string, string> = {
+    'Fuck': 'F*ck',
+    'Fucks': 'f*cks',
+    'Fucling': 'F*cking',
+    'Fucked': 'F*cked',
+    'Kill': 'k*ll',
+    'Killing': 'k*lling',
+    'Killer': 'k*ller',
+    'Killed': 'k*lled',
+    'Suicide': 'S*icide',
+    'Gaza': 'G*za',
+    'Murder': 'M*rder',
+    'Murdered': 'M*rdered',
+    'Murderer': 'M*rderer',
+    'Israel': 'Isr*el',
+    'Israeli': 'Isr*eli',
+    'Rape': 'r*pe',
+    'Rapist': 'R*pist',
+    'Raped': 'R*ped',
+  };
+
+  // Sort by length descending to match longer words first
+  const sortedUnsafe = Object.keys(mappings).sort((a, b) => b.length - a.length);
+
+  sortedUnsafe.forEach((unsafe) => {
+    const regex = new RegExp(unsafe, 'gi');
+    censored = censored.replace(regex, mappings[unsafe]);
+  });
+  return censored;
+};
+
 const initDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, 1);
@@ -267,7 +301,7 @@ const BanglaGuardian = () => {
       const twitterImage = doc.querySelector('meta[name="twitter:image"]')?.getAttribute('content');
       const extractedImage = ogImage || twitterImage || '';
 
-      if (extractedTitle) setTitle(extractedTitle);
+      if (extractedTitle) setTitle(censorText(extractedTitle));
       if (extractedImage) setImageUrl(extractedImage);
 
       if (extractedTitle || extractedImage) {
@@ -510,14 +544,15 @@ const BanglaGuardian = () => {
 
     setIsGenerating(true);
     try {
-      const dataUrl = await generatePhotoCardInternal(title, imageUrl);
+      const censoredTitle = censorText(title);
+      const dataUrl = await generatePhotoCardInternal(censoredTitle, imageUrl);
       setPreviewUrl(dataUrl);
-      setGeneratedTitle(title);
+      setGeneratedTitle(censoredTitle);
 
       const newRecord: AutoRecord = {
         id: Math.random().toString(36).substr(2, 9),
         url: postUrl || 'manual',
-        title: title,
+        title: censoredTitle,
         imageUrl: imageUrl,
         previewUrl: dataUrl,
         timestamp: new Date().toISOString()
@@ -644,13 +679,14 @@ const BanglaGuardian = () => {
           addLog(`Fetching: ${link}`);
           const metadata = await getMetadata(link);
           if (metadata && metadata.title && metadata.image) {
-            addLog(`Generating card for: ${metadata.title}`);
-            const dataUrl = await generatePhotoCardInternal(metadata.title, metadata.image);
+            const censoredTitle = censorText(metadata.title);
+            addLog(`Generating card for: ${censoredTitle}`);
+            const dataUrl = await generatePhotoCardInternal(censoredTitle, metadata.image);
 
             const newRecord: AutoRecord = {
               id: Math.random().toString(36).substr(2, 9),
               url: link,
-              title: metadata.title,
+              title: censoredTitle,
               imageUrl: metadata.image,
               previewUrl: dataUrl,
               timestamp: new Date().toISOString()
@@ -659,7 +695,7 @@ const BanglaGuardian = () => {
             await saveRecordDB(newRecord);
             setAutoRecords(prev => [newRecord, ...prev]);
             setProcessedUrls(prev => new Set(prev).add(link));
-            toast.success(`Auto-generated: ${metadata.title}`);
+            toast.success(`Auto-generated: ${censoredTitle}`);
             playAlert();
           } else {
             addLog(`Failed to get metadata for: ${link}`);
