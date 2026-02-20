@@ -23,36 +23,74 @@ const SJ = () => {
   const [generatedTitle, setGeneratedTitle] = useState('');
 
   const fetchPostData = async () => {
-    if (!postUrl) {
+    const trimmedUrl = postUrl.trim();
+    if (!trimmedUrl) {
       toast.error("Please enter a Post URL");
       return;
     }
 
-    if (!postUrl.includes('bangladeshguardian.com')) {
+    if (!trimmedUrl.includes('bangladeshguardian.com')) {
       toast.error("Only bangladeshguardian.com links are supported");
       return;
     }
 
     setIsFetching(true);
-    try {
-      // Use AllOrigins to fetch the HTML
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(postUrl)}`;
-      const response = await fetch(proxyUrl);
-      if (!response.ok) throw new Error("Failed to fetch page content");
+    let html = '';
 
-      const data = await response.json();
-      const html = data.contents;
+    const proxies = [
+      {
+        url: (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+        type: 'text'
+      },
+      {
+        url: (u: string) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
+        type: 'text'
+      },
+      {
+        url: (u: string) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+        type: 'json'
+      },
+      {
+        url: (u: string) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+        type: 'text'
+      }
+    ];
+
+    try {
+      for (const proxy of proxies) {
+        try {
+          const response = await fetch(proxy.url(trimmedUrl));
+          if (response.ok) {
+            if (proxy.type === 'json') {
+              const data = await response.json();
+              html = data.contents;
+            } else {
+              html = await response.text();
+            }
+            if (html && (html.includes('<title>') || html.includes('og:title'))) break;
+          }
+        } catch (e) {
+          console.warn("Proxy failed for HTML fetch:", e);
+        }
+      }
+
+      if (!html) {
+        throw new Error("Failed to fetch page content from all proxies");
+      }
 
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
 
       // Extract Title
-      const ogTitle = doc.querySelector('meta[property="og:title"]')?.getAttribute('content');
+      const ogTitle = doc.querySelector('meta[property="og:title"]')?.getAttribute('content') ||
+                      doc.querySelector('meta[name="og:title"]')?.getAttribute('content');
       const metaTitle = doc.querySelector('title')?.textContent;
-      const extractedTitle = ogTitle || metaTitle || '';
+      const h1Title = doc.querySelector('h1')?.textContent;
+      const extractedTitle = ogTitle || metaTitle || h1Title || '';
 
       // Extract Image
-      const ogImage = doc.querySelector('meta[property="og:image"]')?.getAttribute('content');
+      const ogImage = doc.querySelector('meta[property="og:image"]')?.getAttribute('content') ||
+                      doc.querySelector('meta[name="og:image"]')?.getAttribute('content');
       const twitterImage = doc.querySelector('meta[name="twitter:image"]')?.getAttribute('content');
       const extractedImage = ogImage || twitterImage || '';
 
@@ -118,7 +156,7 @@ const SJ = () => {
 
   const fetchImageWithProxy = async (url: string): Promise<string> => {
     const proxies = [
-      (u: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+      (u: string) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
       (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
       (u: string) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
     ];
