@@ -3,8 +3,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Download, RefreshCw, Image as ImageIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Settings2, X, ClipboardPaste } from "lucide-react";
+import { Download, RefreshCw, Image as ImageIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Settings2, X, ClipboardPaste, History, Clock, AlertCircle, ExternalLink, Eye, List, Zap } from "lucide-react";
 import { toast } from "sonner";
+
+interface AutoRecord {
+  id: string;
+  url: string;
+  title: string;
+  imageUrl: string;
+  previewUrl: string;
+  timestamp: string;
+}
 
 const BanglaGuardian = () => {
   const [postUrl, setPostUrl] = useState('');
@@ -21,6 +30,87 @@ const BanglaGuardian = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [generatedTitle, setGeneratedTitle] = useState('');
+
+  // Automation State
+  const [autoModeActive, setAutoModeActive] = useState(false);
+  const [isAutoChecking, setIsAutoChecking] = useState(false);
+  const [autoRecords, setAutoRecords] = useState<AutoRecord[]>([]);
+  const [autoLogs, setAutoLogs] = useState<string[]>([]);
+  const [processedUrls, setProcessedUrls] = useState<Set<string>>(new Set());
+  const processedUrlsRef = useRef<Set<string>>(new Set());
+
+  // Keep ref in sync
+  useEffect(() => {
+    processedUrlsRef.current = processedUrls;
+  }, [processedUrls]);
+
+  // Load cache on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('bg_processed_urls');
+    if (saved) {
+      try {
+        const urls = JSON.parse(saved);
+        setProcessedUrls(new Set(urls));
+      } catch (e) {
+        console.error("Failed to load processed URLs", e);
+      }
+    }
+  }, []);
+
+  // Save cache when it changes
+  useEffect(() => {
+    localStorage.setItem('bg_processed_urls', JSON.stringify(Array.from(processedUrls)));
+  }, [processedUrls]);
+
+  const addLog = (msg: string) => {
+    const time = new Date().toLocaleTimeString();
+    setAutoLogs(prev => [`[${time}] ${msg}`, ...prev].slice(0, 50));
+  };
+
+  const getMetadata = async (targetUrl: string) => {
+    let html = '';
+    const proxies = [
+      { url: (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`, type: 'text' },
+      { url: (u: string) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`, type: 'text' },
+      { url: (u: string) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`, type: 'json' },
+      { url: (u: string) => `https://corsproxy.io/?${encodeURIComponent(u)}`, type: 'text' }
+    ];
+
+    for (const proxy of proxies) {
+      try {
+        const response = await fetch(proxy.url(targetUrl));
+        if (response.ok) {
+          if (proxy.type === 'json') {
+            const data = await response.json();
+            html = data.contents;
+          } else {
+            html = await response.text();
+          }
+          if (html && (html.includes('<title>') || html.includes('og:title'))) break;
+        }
+      } catch (e) {
+        console.warn("Proxy failed for metadata fetch:", e);
+      }
+    }
+
+    if (!html) return null;
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const ogTitle = doc.querySelector('meta[property="og:title"]')?.getAttribute('content') ||
+                    doc.querySelector('meta[name="og:title"]')?.getAttribute('content');
+    const metaTitle = doc.querySelector('title')?.textContent;
+    const h1Title = doc.querySelector('h1')?.textContent;
+
+    const ogImage = doc.querySelector('meta[property="og:image"]')?.getAttribute('content') ||
+                    doc.querySelector('meta[name="og:image"]')?.getAttribute('content');
+    const twitterImage = doc.querySelector('meta[name="twitter:image"]')?.getAttribute('content');
+
+    return {
+      title: ogTitle || metaTitle || h1Title || '',
+      image: ogImage || twitterImage || ''
+    };
+  };
 
   const fetchPostData = async () => {
     const trimmedUrl = postUrl.trim();
@@ -212,28 +302,16 @@ const BanglaGuardian = () => {
     return lines;
   };
 
-  const generatePhotoCard = async () => {
-    if (!title) {
-      toast.error("Please enter a title");
-      return;
-    }
-    if (!imageUrl) {
-      toast.error("Please enter an image URL");
-      return;
-    }
-
-    setIsGenerating(true);
+  const generatePhotoCardInternal = async (targetTitle: string, targetImageUrl: string): Promise<string> => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) throw new Error("Canvas not found");
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    if (!ctx) return;
+    if (!ctx) throw new Error("Context not found");
 
-    // Clear canvas before drawing
     ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
     let userImgBlobUrl = '';
     try {
-      // 1. Draw Template
       const template = new Image();
       template.crossOrigin = "anonymous";
       template.src = "/PhotocardTemplate.png";
@@ -243,14 +321,12 @@ const BanglaGuardian = () => {
       });
       ctx.drawImage(template, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-      // 2. Ensure fonts are loaded
       await Promise.all([
         document.fonts.load(`bold ${fontSize}px "Cambria"`),
         document.fonts.load(`${dateFontSize}px "Cambria"`)
       ]).catch(e => console.warn('Font loading failed:', e));
 
-      // 3. Draw User Image
-      userImgBlobUrl = await fetchImageWithProxy(imageUrl);
+      userImgBlobUrl = await fetchImageWithProxy(targetImageUrl);
       const userImg = new Image();
       userImg.src = userImgBlobUrl;
       await new Promise((resolve, reject) => {
@@ -258,14 +334,12 @@ const BanglaGuardian = () => {
         userImg.onerror = reject;
       });
 
-      // Scale to fill BOX (cover)
       const scale = Math.max(BOX.w / userImg.width, BOX.h / userImg.height);
       const drawW = userImg.width * scale;
       const drawH = userImg.height * scale;
       const drawX = BOX.x + (BOX.w - drawW) / 2;
       const drawY = BOX.y + (BOX.h - drawH) / 2;
 
-      // Rounded corners path
       const radius = 35;
       const defineBoxPath = () => {
         ctx.beginPath();
@@ -287,7 +361,6 @@ const BanglaGuardian = () => {
       ctx.drawImage(userImg, drawX, drawY, drawW, drawH);
       ctx.restore();
 
-      // Draw red outline manually as requested (since template outline might be covered)
       ctx.save();
       defineBoxPath();
       ctx.lineWidth = 2;
@@ -295,20 +368,16 @@ const BanglaGuardian = () => {
       ctx.stroke();
       ctx.restore();
 
-      // 4. Draw Date (Double size)
       ctx.font = `${dateFontSize}px "Cambria"`;
       ctx.fillStyle = 'white';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
       ctx.fillText(formatDate(new Date()), DATE_X + dateXOffset, DATE_Y + dateYOffset);
 
-      // 5. Draw Title with Dynamic Line Management
       let currentFontSize = fontSize;
       ctx.fillStyle = 'white';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-
-      // Decrease letter spacing
       ctx.letterSpacing = `${titleLetterSpacing}px`;
 
       const maxW = 980;
@@ -318,22 +387,12 @@ const BanglaGuardian = () => {
         let attempts = 0;
         while (attempts < 10) {
           ctx.font = `bold ${currentFontSize}px "Cambria"`;
-          lines = wrapText(ctx, title, maxW);
-
+          lines = wrapText(ctx, targetTitle, maxW);
           let maxLineW = 0;
-          lines.forEach(l => {
-            maxLineW = Math.max(maxLineW, ctx.measureText(l).width);
-          });
-
-          if (lines.length <= 3 && maxLineW <= maxW) {
-            break;
-          }
-
-          if (lines.length > 3) {
-            currentFontSize *= 0.9;
-          } else if (maxLineW > maxW) {
-            currentFontSize *= (maxW / maxLineW);
-          }
+          lines.forEach(l => { maxLineW = Math.max(maxLineW, ctx.measureText(l).width); });
+          if (lines.length <= 3 && maxLineW <= maxW) break;
+          if (lines.length > 3) currentFontSize *= 0.9;
+          else if (maxLineW > maxW) currentFontSize *= (maxW / maxLineW);
           attempts++;
         }
       };
@@ -343,27 +402,151 @@ const BanglaGuardian = () => {
       const lineHeight = currentFontSize * 0.9;
       const totalHeight = (lines.length - 1) * lineHeight;
       const startY = TITLE_Y - (totalHeight / 2);
-
       lines.forEach((line, index) => {
         ctx.fillText(line, TITLE_X, startY + (index * lineHeight));
       });
 
-      // Reset letter spacing
       ctx.letterSpacing = "0px";
-
-      setPreviewUrl(canvas.toDataURL('image/png'));
-      setGeneratedTitle(title);
-      toast.success("Photocard generated!");
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to load image. Make sure the URL is valid and allows CORS.");
+      return canvas.toDataURL('image/png');
     } finally {
       if (userImgBlobUrl && userImgBlobUrl.startsWith('blob:')) {
         URL.revokeObjectURL(userImgBlobUrl);
       }
+    }
+  };
+
+  const generatePhotoCard = async () => {
+    if (!title) {
+      toast.error("Please enter a title");
+      return;
+    }
+    if (!imageUrl) {
+      toast.error("Please enter an image URL");
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const dataUrl = await generatePhotoCardInternal(title, imageUrl);
+      setPreviewUrl(dataUrl);
+      setGeneratedTitle(title);
+      toast.success("Photocard generated!");
+
+      // Enable automation after first successful manual generation
+      if (!autoModeActive) {
+        setAutoModeActive(true);
+        addLog("Automation activated after first generation.");
+        toast.info("Background automation enabled.");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to generate photocard.");
+    } finally {
       setIsGenerating(false);
     }
   };
+
+  const scrapeLatestLinks = async () => {
+    const latestUrl = "https://www.bangladeshguardian.com/latest";
+    let html = '';
+    const proxies = [
+      (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+      (u: string) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
+      (u: string) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+    ];
+
+    for (const proxy of proxies) {
+      try {
+        const response = await fetch(proxy(latestUrl));
+        if (response.ok) {
+          html = await response.text();
+          if (html && html.includes('href=')) break;
+        }
+      } catch (e) {
+        console.warn("Proxy failed for link scraping:", e);
+      }
+    }
+
+    if (!html) return [];
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const links = Array.from(doc.querySelectorAll('a'))
+      .map(a => a.href)
+      .filter(href =>
+        href.includes('bangladeshguardian.com/') &&
+        !href.endsWith('/latest') &&
+        !href.endsWith('/about') &&
+        !href.endsWith('/contact') &&
+        !href.includes('/category/') &&
+        href.length > 40 // Typical article link length
+      );
+
+    return Array.from(new Set(links));
+  };
+
+  const checkAndGenerate = async () => {
+    if (isAutoChecking) return;
+    setIsAutoChecking(true);
+    addLog("Checking for new posts...");
+
+    try {
+      const links = await scrapeLatestLinks();
+      const newLinks = links.filter(link => !processedUrlsRef.current.has(link));
+
+      if (newLinks.length === 0) {
+        addLog("No new posts found.");
+      } else {
+        addLog(`Found ${newLinks.length} new post(s). Processing...`);
+
+        for (const link of newLinks) {
+          addLog(`Fetching: ${link}`);
+          const metadata = await getMetadata(link);
+          if (metadata && metadata.title && metadata.image) {
+            addLog(`Generating card for: ${metadata.title}`);
+            const dataUrl = await generatePhotoCardInternal(metadata.title, metadata.image);
+
+            const newRecord: AutoRecord = {
+              id: Math.random().toString(36).substr(2, 9),
+              url: link,
+              title: metadata.title,
+              imageUrl: metadata.image,
+              previewUrl: dataUrl,
+              timestamp: new Date().toLocaleTimeString()
+            };
+
+            setAutoRecords(prev => [newRecord, ...prev]);
+            setProcessedUrls(prev => new Set(prev).add(link));
+            toast.success(`Auto-generated: ${metadata.title}`);
+          } else {
+            addLog(`Failed to get metadata for: ${link}`);
+            // Still mark as processed to avoid repeated failures
+            setProcessedUrls(prev => new Set(prev).add(link));
+          }
+          // Small delay between generations to avoid browser issues
+          await new Promise(r => setTimeout(r, 1000));
+        }
+      }
+    } catch (e) {
+      console.error("Automation error:", e);
+      addLog("Automation error occurred.");
+    } finally {
+      setIsAutoChecking(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!autoModeActive) return;
+
+    // Initial check
+    checkAndGenerate();
+
+    const interval = setInterval(() => {
+      checkAndGenerate();
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [autoModeActive]);
 
   const downloadImage = () => {
     if (!previewUrl) return;
@@ -509,29 +692,121 @@ const BanglaGuardian = () => {
             )}
           </div>
 
-          <div className="flex flex-col items-center justify-center space-y-4">
-            <div className="relative w-full aspect-square border-2 border-dashed border-border rounded-lg overflow-hidden flex items-center justify-center bg-surface-1 shadow-lg">
-              {previewUrl ? (
-                <img
-                  src={previewUrl}
-                  alt="Photocard Preview"
-                  className="w-full h-full object-contain"
-                />
-              ) : (
-                <div className="text-muted-foreground flex flex-col items-center gap-2">
-                  <ImageIcon className="h-12 w-12 opacity-20" />
-                  <span>Preview will appear here</span>
-                </div>
-              )}
+          <div className="flex flex-col space-y-6">
+            <div className="flex flex-col items-center justify-center space-y-4">
+              <div className="relative w-full aspect-square border-2 border-dashed border-border rounded-lg overflow-hidden flex items-center justify-center bg-surface-1 shadow-lg">
+                {previewUrl ? (
+                  <img
+                    src={previewUrl}
+                    alt="Photocard Preview"
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <div className="text-muted-foreground flex flex-col items-center gap-2">
+                    <ImageIcon className="h-12 w-12 opacity-20" />
+                    <span>Preview will appear here</span>
+                  </div>
+                )}
+              </div>
+              <canvas
+                ref={canvasRef}
+                width={CANVAS_WIDTH}
+                height={CANVAS_HEIGHT}
+                className="hidden"
+              />
             </div>
-            <canvas
-              ref={canvasRef}
-              width={CANVAS_WIDTH}
-              height={CANVAS_HEIGHT}
-              className="hidden"
-            />
+
+            <div className="terminal-window p-4 space-y-4">
+              <div className="flex items-center justify-between border-b border-border pb-2">
+                <h3 className="text-sm font-bold flex items-center gap-2 text-primary">
+                  <Zap className="h-4 w-4" />
+                  AUTOMATION STATUS
+                </h3>
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${autoModeActive ? 'bg-green-500 animate-pulse' : 'bg-zinc-600'}`} />
+                  <span className="text-[10px] uppercase tracking-wider font-bold">
+                    {autoModeActive ? 'Active' : 'Idle'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                  <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> Interval: 60s</span>
+                  <span className="flex items-center gap-1"><History className="h-3 w-3" /> Cache: {processedUrls.size} items</span>
+                </div>
+
+                <div className="bg-black/40 rounded border border-border/50 p-2 h-32 overflow-y-auto scrollbar-hide font-mono text-[10px] space-y-1">
+                  {autoLogs.length === 0 ? (
+                    <div className="text-zinc-600 italic">Waiting for activity...</div>
+                  ) : (
+                    autoLogs.map((log, i) => (
+                      <div key={i} className={`${log.includes('Generating') ? 'text-primary' : log.includes('Found') ? 'text-green-400' : 'text-zinc-400'}`}>
+                        {log}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+
+        {autoRecords.length > 0 && (
+          <div className="space-y-6 pt-8 border-t border-border">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold tracking-tighter flex items-center gap-2">
+                <List className="h-6 w-6 text-primary" />
+                AUTOMATED GENERATIONS
+              </h2>
+              <span className="bg-surface-2 border border-border px-3 py-1 rounded-full text-[10px] font-bold">
+                {autoRecords.length} TOTAL
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {autoRecords.map((record) => (
+                <div key={record.id} className="terminal-window overflow-hidden flex flex-col group animate-fade-in-up">
+                  <div className="terminal-header flex items-center justify-between py-1 px-3">
+                    <span className="text-[8px] font-mono opacity-50 truncate max-w-[150px]">{record.title}</span>
+                    <span className="text-[8px] font-mono opacity-50">{record.timestamp}</span>
+                  </div>
+                  <div className="aspect-square relative bg-surface-1 border-b border-border overflow-hidden">
+                    <img src={record.previewUrl} alt={record.title} className="w-full h-full object-contain" />
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm">
+                      <Button variant="secondary" size="icon" onClick={() => {
+                        const link = document.createElement('a');
+                        link.download = `${record.title}.png`;
+                        link.href = record.previewUrl;
+                        link.click();
+                      }} title="Download">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={() => window.open(record.url, '_blank')} title="View Post">
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="p-3 flex-1 flex flex-col justify-between">
+                    <h4 className="text-xs font-bold line-clamp-2 mb-2">{record.title}</h4>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-[10px] h-7 hover:bg-surface-2"
+                      onClick={() => {
+                        setPreviewUrl(record.previewUrl);
+                        setGeneratedTitle(record.title);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                    >
+                      <Eye className="h-3 w-3 mr-1" /> Preview Main
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {showSettings && (
