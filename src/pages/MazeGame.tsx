@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { ArrowLeft, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, Trophy, Settings, X, Maximize, Minimize, Zap, Route, Shuffle, Ghost, ShoppingBag, Dices, Radar, Expand, Play, Waypoints, Footprints, Flame, RefreshCcw, Snowflake, Eye, Bomb, Compass, Palette, Scaling, Binary, Skull, Clock, ArrowDownUp, Music, Map, History, Infinity, Shirt, Hash, Wind, Activity, Scan, ArrowUpCircle, FastForward } from "lucide-react";
+import { ArrowLeft, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, Trophy, Settings, X, Maximize, Minimize, Zap, Route, Shuffle, Ghost, ShoppingBag, Dices, Radar, Expand, Play, Waypoints, Footprints, Flame, RefreshCcw, Snowflake, Eye, Bomb, Compass, Palette, Scaling, Binary, Skull, Clock, ArrowDownUp, Music, Map, History, Infinity, Shirt, Hash, Wind, Activity, Scan, ArrowUpCircle, FastForward, Cpu, Sun, MoveUpRight, Tally1, Search, EyeOff, Box, Lightbulb, Waves, CloudRain, Grid, Contrast, Cloud, RotateCw, Rocket, Aperture, Radiation, PartyPopper, UserMinus, Cat } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +24,23 @@ const DUCK_COLORS = [
   { name: "Ruby", value: "#E11D48" },
   { name: "Purple", value: "#A855F7" },
 ];
+
+const ACCESSORY_COLORS: Record<string, Record<string, Record<number, string>>> = {
+  dress: {
+    pink: { 4: "#FF69B4", 5: "#FFC0CB" },
+    blue: { 4: "#3B82F6", 5: "#60A5FA" },
+    red: { 4: "#EF4444", 5: "#F87171" },
+    green: { 4: "#22C55E", 5: "#4ADE80" },
+    yellow: { 4: "#EAB308", 5: "#FACC15" },
+    purple: { 4: "#A855F7", 5: "#C084FC" },
+    black: { 4: "#1F2937", 5: "#374151" },
+    white: { 4: "#F3F4F6", 5: "#FFFFFF" },
+    tuxedo: { 4: "#000000", 5: "#FFFFFF" },
+    raincoat: { 4: "#FDE047", 5: "#EAB308" },
+    superhero: { 4: "#DC2626", 5: "#2563EB" },
+    ninja: { 4: "#111827", 5: "#374151" },
+  }
+};
 
 const BEAK_COLOR = "#FF8C00";
 const EYE_COLOR = "#000000";
@@ -66,26 +83,18 @@ const ACCESSORIES: Record<string, Record<string, number[][] | null>> = {
   },
   dress: {
     none: null,
-    pink: [
-      [0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 4, 4, 4, 4, 0, 0],
-      [0, 4, 4, 4, 4, 4, 4, 0],
-      [0, 4, 4, 4, 4, 4, 4, 0],
-      [4, 4, 4, 4, 4, 4, 4, 4],
-      [0, 0, 0, 0, 0, 0, 0, 0],
-    ],
-    blue: [
-      [0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 4, 4, 4, 4, 0, 0],
-      [0, 4, 4, 4, 4, 4, 4, 0],
-      [0, 4, 4, 4, 4, 4, 4, 0],
-      [4, 4, 4, 4, 4, 4, 4, 4],
-      [0, 0, 0, 0, 0, 0, 0, 0],
-    ],
+    pink: [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,4,4,4,4,0,0],[0,4,4,4,4,4,4,0],[0,4,5,5,5,5,4,0],[4,4,4,4,4,4,4,4],[0,0,0,0,0,0,0,0]],
+    blue: [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,4,4,4,4,0,0],[0,4,4,4,4,4,4,0],[0,4,5,5,5,5,4,0],[4,4,4,4,4,4,4,4],[0,0,0,0,0,0,0,0]],
+    red: [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,4,4,4,4,0,0],[0,4,4,4,4,4,4,0],[0,4,5,5,5,5,4,0],[4,4,4,4,4,4,4,4],[0,0,0,0,0,0,0,0]],
+    green: [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,4,4,4,4,0,0],[0,4,4,4,4,4,4,0],[0,4,5,5,5,5,4,0],[4,4,4,4,4,4,4,4],[0,0,0,0,0,0,0,0]],
+    yellow: [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,4,4,4,4,0,0],[0,4,4,4,4,4,4,0],[0,4,5,5,5,5,4,0],[4,4,4,4,4,4,4,4],[0,0,0,0,0,0,0,0]],
+    purple: [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,4,4,4,4,0,0],[0,4,4,4,4,4,4,0],[0,4,5,5,5,5,4,0],[4,4,4,4,4,4,4,4],[0,0,0,0,0,0,0,0]],
+    black: [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,4,4,4,4,0,0],[0,4,4,4,4,4,4,0],[0,4,5,5,5,5,4,0],[4,4,4,4,4,4,4,4],[0,0,0,0,0,0,0,0]],
+    white: [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,4,4,4,4,0,0],[0,4,4,4,4,4,4,0],[0,4,5,5,5,5,4,0],[4,4,4,4,4,4,4,4],[0,0,0,0,0,0,0,0]],
+    tuxedo: [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,4,4,0,0,0],[0,0,4,5,5,4,0,0],[0,4,5,5,5,5,4,0],[0,4,4,5,5,4,4,0],[4,4,4,4,4,4,4,4],[0,0,0,0,0,0,0,0]],
+    raincoat: [[0,0,0,4,4,4,0,0],[0,0,4,4,4,4,4,0],[0,0,4,4,4,4,4,0],[0,0,4,4,4,4,0,0],[0,4,4,4,4,4,4,0],[0,4,4,4,4,4,4,0],[4,4,4,4,4,4,4,4],[0,0,0,0,0,0,0,0]],
+    superhero: [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,4,4,4,4,0,0],[5,4,4,5,5,4,4,5],[5,4,4,5,5,4,4,5],[5,4,4,4,4,4,4,5],[0,0,0,0,0,0,0,0]],
+    ninja: [[0,0,0,0,0,0,0,0],[0,0,4,4,4,4,0,0],[0,4,4,5,5,4,4,0],[0,4,4,4,4,4,4,0],[0,4,4,4,4,4,4,0],[0,4,4,4,4,4,4,0],[0,4,4,4,4,4,4,0],[0,0,0,0,0,0,0,0]],
   },
   shoes: {
     none: null,
@@ -163,8 +172,8 @@ const ACCESSORIES: Record<string, Record<string, number[][] | null>> = {
 const DUCK_PIXELS = {
   right: [
     [0, 0, 0, 1, 1, 1, 0, 0],
-    [0, 0, 1, 1, 3, 1, 1, 0],
-    [0, 0, 1, 1, 1, 1, 2, 2],
+    [0, 0, 1, 1, 1, 1, 1, 0],
+    [0, 0, 1, 1, 3, 1, 2, 2],
     [0, 0, 1, 1, 1, 1, 0, 0],
     [1, 1, 1, 1, 1, 1, 1, 0],
     [1, 1, 1, 1, 1, 1, 1, 0],
@@ -173,8 +182,8 @@ const DUCK_PIXELS = {
   ],
   left: [
     [0, 0, 1, 1, 1, 0, 0, 0],
-    [0, 1, 1, 3, 1, 1, 0, 0],
-    [2, 2, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 1, 1, 1, 0, 0],
+    [2, 2, 1, 3, 1, 1, 1, 0],
     [0, 0, 1, 1, 1, 1, 1, 0],
     [0, 1, 1, 1, 1, 1, 1, 1],
     [0, 1, 1, 1, 1, 1, 1, 1],
@@ -203,6 +212,130 @@ const DUCK_PIXELS = {
   ],
 };
 
+const MOD_LIST = [
+  { id: "superSpeed", icon: Zap, title: "SUPER SPEED", description: "Duck runs faster and overshoots until hitting a wall.", pros: "FASTER MOVEMENT", cons: "CANNOT STOP AT JUNCTIONS" },
+  { id: "pathFinder", icon: Route, title: "PATH FINDER", description: "Show the optimal path to the exit.", pros: "GUARANTEED ROUTE", cons: "REMOVES CHALLENGE" },
+  { id: "randomExit", icon: Shuffle, title: "RANDOM EXIT", description: "Exit spawns at a random path location.", pros: "UNPREDICTABLE", cons: "MIGHT BE TOO CLOSE" },
+  { id: "ghostDuck", icon: Ghost, title: "GHOST DUCK", description: "Phase through walls to reach adjacent paths.", pros: "WALL SHORTCUTS", cons: "MUST REACH A PATH" },
+  { id: "visionPulse", icon: Radar, title: "VISION PULSE", description: "The maze is dark, revealed only by periodic pulses.", pros: "STIMULATING", cons: "HARD TO NAVIGATE" },
+  { id: "eagleEye", icon: Expand, title: "EAGLE EYE", description: "Zoom out to see a larger portion of the maze.", pros: "PLAN LONG ROUTES", cons: "HARD TO SEE DETAILS" },
+  { id: "autoPilot", icon: Play, title: "AUTO-PILOT", description: "The duck automatically moves toward the exit.", pros: "EFFORTLESS", cons: "NO CHALLENGE" },
+  { id: "warpPortals", icon: Waypoints, title: "WARP PORTALS", description: "Randomly spawns interconnected teleportation portals.", pros: "SKIP SECTIONS", cons: "RANDOM PLACEMENT" },
+  { id: "trailBlazer", icon: Footprints, title: "TRAIL BLAZER", description: "Leave a permanent glowing trail on visited cells.", pros: "TRACK VISITED PATHS", cons: "VISUAL CLUTTER" },
+  { id: "wallBreaker", icon: Flame, title: "WALL BREAKER", description: "Fire a beam to break walls in front of you.", pros: "CREATE SHORTCUTS", cons: "BYPASS LOGIC" },
+  { id: "mirrorMode", icon: RefreshCcw, title: "MIRROR MODE", description: "Directional controls are completely reversed.", pros: "MENTAL CHALLENGE", cons: "VERY CONFUSING" },
+  { id: "slipperyIce", icon: Snowflake, title: "SLIPPERY ICE", description: "The floor is ice! You slide 1 cell after moving.", pros: "FASTER TRAVERSAL", cons: "HARDER TO STOP" },
+  { id: "nightVision", icon: Eye, title: "NIGHT VISION", description: "See clearly even in the dark (wider vision range).", pros: "EASY NAVIGATION", cons: "LESS MYSTERY" },
+  { id: "sonicBoom", icon: Bomb, title: "SONIC BOOM", description: "Release a blast that destroys all surrounding walls.", pros: "CLEAR MASSIVE PATHS", cons: "MANUAL TRIGGER" },
+  { id: "compass", icon: Compass, title: "COMPASS", description: "An arrow always points towards the exit.", pros: "NEVER GET LOST", cons: "MAKES IT TRIVIAL" },
+  { id: "rainbowDuck", icon: Palette, title: "RAINBOW DUCK", description: "Your duck cycles through a spectrum of colors.", pros: "AESTHETIC", cons: "NO ADVANTAGE" },
+  { id: "sizeShifter", icon: Scaling, title: "SIZE SHIFTER", description: "The world pulsates, changing your view size.", pros: "DYNAMIC GAMEPLAY", cons: "DISORIENTING" },
+  { id: "matrixMode", icon: Binary, title: "MATRIX MODE", description: "The maze is made of falling green code.", pros: "LOOK LIKE A PRO", cons: "HARDER TO SEE PATHS" },
+  { id: "hardcoreMode", icon: Skull, title: "HARDCORE MODE", description: "Hitting a wall resets you to the start.", pros: "ULTIMATE CHALLENGE", cons: "PUNISHING" },
+  { id: "timeWarp", icon: Clock, title: "TIME WARP", description: "Slow down time for more precise movement.", pros: "PRECISION", cons: "SLOWER PROGRESS" },
+  { id: "gravityFlip", icon: ArrowDownUp, title: "GRAVITY FLIP", description: "The entire game is flipped upside down.", pros: "NEW PERSPECTIVE", cons: "INVERTED VISUALS" },
+  { id: "discoMode", icon: Music, title: "DISCO MODE", description: "Flashy cycling colors for the whole maze.", pros: "PARTY ATMOSPHERE", cons: "EYE STRAIN" },
+  { id: "minimap", icon: Map, title: "MINIMAP", description: "Shows a small overview of the entire maze.", pros: "LONG-DISTANCE PLAN", cons: "OCCUPIES SPACE" },
+  { id: "ghostTrail", icon: History, title: "GHOST TRAIL", description: "Leave a fading trail of where you just were.", pros: "TRACK RECENT MOVES", cons: "DISTRACTING" },
+  { id: "portalMaster", icon: Infinity, title: "PORTAL MASTER", description: "Generates 4 portals instead of 2.", pros: "COMPLEX SKIPS", cons: "UNPREDICTABLE" },
+  { id: "blinkDash", icon: Wind, title: "BLINK DASH", description: "Teleport 2 cells forward, bypassing any walls.", pros: "INSTANT SHORTCUTS", cons: "MANUAL TRIGGER" },
+  { id: "staticNoise", icon: Activity, title: "STATIC NOISE", description: "Adds flickering visual interference to the maze.", pros: "TEST CONCENTRATION", cons: "DISORIENTING" },
+  { id: "xRayVision", icon: Scan, title: "X-RAY VISION", description: "The exit location is always visible through walls.", pros: "KNOW WHERE TO GO", cons: "LESS EXPLORATION" },
+  { id: "doubleJump", icon: ArrowUpCircle, title: "DOUBLE JUMP", description: "Move 2 cells at once when the path is clear.", pros: "VASTLY INCREASE SPEED", cons: "HARDER CONTROL" },
+  { id: "speedDemon", icon: FastForward, title: "SPEED DEMON", description: "Movement speed scales up the longer you move.", pros: "INCREDIBLE TOP SPEED", cons: "HARD TO REACT" },
+  { id: "glitchDuck", icon: Cpu, title: "GLITCH DUCK", description: "Duck flickers in and out of reality.", pros: "LOOKS COOL", cons: "HARD TO TRACK" },
+  { id: "neonPath", icon: Sun, title: "NEON PATH", description: "Paths glow with vibrant neon colors.", pros: "VIBRANT VISUALS", cons: "COLOR OVERLOAD" },
+  { id: "bouncyWalls", icon: MoveUpRight, title: "BOUNCY WALLS", description: "Hitting a wall bounces you back with force.", pros: "AVOID WALL STICKING", cons: "UNEXPECTED MOVES" },
+  { id: "lowFriction", icon: Tally1, title: "LOW FRICTION", description: "Harder to stop; you slide slightly after moving.", pros: "MOMENTUM", cons: "PRECISE STOPS HARD" },
+  { id: "magnifier", icon: Search, title: "MAGNIFIER", description: "The area around the duck is permanently zoomed.", pros: "SEE DETAILS", cons: "REDUCED VIEW" },
+  { id: "camouflage", icon: EyeOff, title: "CAMOUFLAGE", description: "Duck changes color to blend with the environment.", pros: "STEALTHY", cons: "HARD TO SEE SELF" },
+  { id: "ghostlyWalls", icon: Box, title: "GHOSTLY WALLS", description: "Walls are semi-transparent, revealing structure.", pros: "SEE THROUGH WALLS", cons: "CONFUSING DEPTH" },
+  { id: "strobe", icon: Lightbulb, title: "STROBE LIGHT", description: "The screen flashes with intense light.", pros: "INTENSE FEEL", cons: "EYE FATIGUE" },
+  { id: "earthquake", icon: Waves, title: "EARTHQUAKE", description: "The entire maze shakes whenever you move.", pros: "IMMERSIVE", cons: "DISORIENTING" },
+  { id: "windGusts", icon: CloudRain, title: "WIND GUSTS", description: "Periodic wind gusts push the duck randomly.", pros: "DYNAMIC ENVIRONMENT", cons: "UNWANTED PUSHES" },
+  { id: "pixelate", icon: Grid, title: "RETRO PIXELATE", description: "Apply a retro pixelation filter to the game.", pros: "RETRO VIBES", cons: "LESS CLARITY" },
+  { id: "invertVisuals", icon: Contrast, title: "INVERT COLORS", description: "All colors in the game are completely inverted.", pros: "UNIQUE LOOK", cons: "VISUALLY JARRING" },
+  { id: "fogOfWar", icon: Cloud, title: "FOG OF WAR", description: "Only the immediate vicinity is visible.", pros: "HIGH SUSPENSE", cons: "VERY DIFFICULT" },
+  { id: "drunkenMaster", icon: RotateCw, title: "DRUNKEN MASTER", description: "Directional controls swap every 10 seconds.", pros: "UNPREDICTABLE", cons: "EXTREMELY HARD" },
+  { id: "jetpack", icon: Rocket, title: "JETPACK", description: "Ability to jump over single walls.", pros: "WALL JUMPING", cons: "COOLDOWN REQUIRED" },
+  { id: "laserVision", icon: Aperture, title: "LASER VISION", description: "Break multiple walls in a straight line.", pros: "LONG RANGE BREAK", cons: "MANUAL TRIGGER" },
+  { id: "nuclearBlast", icon: Radiation, title: "NUCLEAR BLAST", description: "Clear a large circular area of walls.", pros: "ULTIMATE CLEARANCE", cons: "DESTRUCTIVE" },
+  { id: "confettiTrail", icon: PartyPopper, title: "CONFETTI TRAIL", description: "Leave a trail of colorful confetti.", pros: "CELEBRATORY", cons: "VISUAL NOISE" },
+  { id: "thiefExit", icon: UserMinus, title: "THIEF EXIT", description: "The exit moves if you get too close to it.", pros: "EXTRA CHALLENGE", cons: "FRUSTRATING" },
+  { id: "hauntedMaze", icon: Cat, title: "HAUNTED MAZE", description: "Ghostly apparitions haunt the maze corridors.", pros: "SPOOKY ATMOSPHERE", cons: "SCARY" },
+];
+
+const DuckLivePreview = ({ customization }: { customization: any }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [frame, setFrame] = useState(0);
+
+  useEffect(() => {
+    let animationFrameId: number;
+    const animate = () => {
+      setFrame(f => (f + 1) % 252); // 63 frames * 4 directions
+      animationFrameId = requestAnimationFrame(animate);
+    };
+    animate();
+    return () => cancelAnimationFrame(animationFrameId);
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const directions: ("down" | "left" | "up" | "right")[] = ["down", "right", "up", "left"];
+    const dir = directions[Math.floor(frame / 63)];
+    const wobble = Math.round(Math.sin(frame * 0.3) * 3);
+    const pixelSize = canvas.width / 8;
+    const duckPixels = DUCK_PIXELS[dir];
+
+    const drawPixels = (pixels: number[][], colors: Record<number, string>) => {
+      pixels.forEach((row, rowIdx) => {
+        row.forEach((pixel, colIdx) => {
+          if (pixel === 0 || !colors[pixel]) return;
+          ctx.fillStyle = colors[pixel];
+          const x = Math.floor(colIdx * pixelSize);
+          const y = Math.floor(rowIdx * pixelSize + wobble + 4); // +4 to center vertically
+          const w = Math.ceil(pixelSize);
+          const h = Math.ceil(pixelSize);
+          ctx.fillRect(x, y, w, h);
+        });
+      });
+    };
+
+    // Draw Duck
+    drawPixels(duckPixels, {
+      1: customization.color,
+      2: BEAK_COLOR,
+      3: EYE_COLOR
+    });
+
+    // Draw Accessories
+    Object.keys(ACCESSORIES).forEach(type => {
+      const accessoryName = customization[type as keyof typeof customization];
+      const accessoryPixels = ACCESSORIES[type]?.[accessoryName as string];
+      if (accessoryPixels) {
+        const customColors = ACCESSORY_COLORS[type]?.[accessoryName as string];
+        drawPixels(accessoryPixels, customColors || {
+          4: "#fff",
+          5: "#555"
+        });
+      }
+    });
+  }, [frame, customization]);
+
+  return (
+    <div className="flex flex-col items-center justify-center p-4 bg-black/40 border border-white/10 rounded-2xl gap-2">
+      <canvas ref={canvasRef} width={80} height={80} className="pixelated" />
+      <span className="text-[10px] text-primary font-bold animate-pulse">LIVE_PREVIEW</span>
+    </div>
+  );
+};
+
 const MazeGame = () => {
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -222,6 +355,7 @@ const MazeGame = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showModStore, setShowModStore] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [showEditDuck, setShowEditDuck] = useState(false);
   const [showLevelJump, setShowLevelJump] = useState(false);
   const [mods, setMods] = useState({
@@ -255,6 +389,26 @@ const MazeGame = () => {
     xRayVision: localStorage.getItem("maze_mod_xray") === "true",
     doubleJump: localStorage.getItem("maze_mod_doublejump") === "true",
     speedDemon: localStorage.getItem("maze_mod_speeddemon") === "true",
+    glitchDuck: localStorage.getItem("maze_mod_glitch") === "true",
+    neonPath: localStorage.getItem("maze_mod_neon") === "true",
+    bouncyWalls: localStorage.getItem("maze_mod_bouncy") === "true",
+    lowFriction: localStorage.getItem("maze_mod_friction") === "true",
+    magnifier: localStorage.getItem("maze_mod_magnifier") === "true",
+    camouflage: localStorage.getItem("maze_mod_camouflage") === "true",
+    ghostlyWalls: localStorage.getItem("maze_mod_ghostly") === "true",
+    strobe: localStorage.getItem("maze_mod_strobe") === "true",
+    earthquake: localStorage.getItem("maze_mod_earthquake") === "true",
+    windGusts: localStorage.getItem("maze_mod_windgusts") === "true",
+    pixelate: localStorage.getItem("maze_mod_pixelate") === "true",
+    invertVisuals: localStorage.getItem("maze_mod_invert") === "true",
+    fogOfWar: localStorage.getItem("maze_mod_fog") === "true",
+    drunkenMaster: localStorage.getItem("maze_mod_drunken") === "true",
+    jetpack: localStorage.getItem("maze_mod_jetpack") === "true",
+    laserVision: localStorage.getItem("maze_mod_laser") === "true",
+    nuclearBlast: localStorage.getItem("maze_mod_nuclear") === "true",
+    confettiTrail: localStorage.getItem("maze_mod_confetti") === "true",
+    thiefExit: localStorage.getItem("maze_mod_thief") === "true",
+    hauntedMaze: localStorage.getItem("maze_mod_haunted") === "true",
   });
 
   const [customization, setCustomization] = useState(() => {
@@ -276,6 +430,9 @@ const MazeGame = () => {
   const [visitedCells, setVisitedCells] = useState<Set<string>>(new Set());
   const [solutionPath, setSolutionPath] = useState<Position[]>([]);
   const [jumpLevel, setJumpLevel] = useState("");
+  const [controlMap, setControlMap] = useState<Record<string, "up" | "down" | "left" | "right">>({
+    up: "up", down: "down", left: "left", right: "right"
+  });
   const moveIntervalRef = useRef<any>(null);
 
   // --- Maze Generation (Recursive Backtracking) ---
@@ -426,7 +583,7 @@ const MazeGame = () => {
   const move = useCallback((requestedDir: "up" | "down" | "left" | "right") => {
     if (gameWon || maze.length === 0) return;
 
-    let dir = requestedDir;
+    let dir = mods.drunkenMaster ? controlMap[requestedDir] : requestedDir;
     if (mods.mirrorMode) {
       if (requestedDir === "up") dir = "down";
       else if (requestedDir === "down") dir = "up";
@@ -509,6 +666,22 @@ const MazeGame = () => {
       }
 
       const nextPos = getNext(currentPos);
+
+      if (isWall(nextPos)) {
+        if (mods.bouncyWalls) {
+           // Bouncing logic: move 1 cell in opposite direction if path is clear
+           const oppositeDir = dir === "up" ? "down" : dir === "down" ? "up" : dir === "left" ? "right" : "left";
+           const bouncePos = { ...currentPos };
+           if (oppositeDir === "up") bouncePos.y -= 1;
+           if (oppositeDir === "down") bouncePos.y += 1;
+           if (oppositeDir === "left") bouncePos.x -= 1;
+           if (oppositeDir === "right") bouncePos.x += 1;
+
+           if (!isWall(bouncePos)) return bouncePos;
+        }
+        return prev;
+      }
+
       if (!isWall(nextPos)) {
         let finalPos = nextPos;
 
@@ -526,6 +699,31 @@ const MazeGame = () => {
         }
         const teleported = handlePortal(finalPos);
 
+        if (mods.thiefExit && exitPos) {
+           const dist = Math.abs(teleported.x - exitPos.x) + Math.abs(teleported.y - exitPos.y);
+           if (dist < 3) {
+             // Move exit to a random path
+             const paths: Position[] = [];
+             for (let y = 1; y < maze.length - 1; y++) {
+               for (let x = 1; x < maze[0].length - 1; x++) {
+                 if (maze[y][x] === "path" && (Math.abs(x - teleported.x) + Math.abs(y - teleported.y) > 5)) {
+                   paths.push({ x, y });
+                 }
+               }
+             }
+             if (paths.length > 0) {
+               const newExit = paths[Math.floor(Math.random() * paths.length)];
+               setMaze(prevMaze => {
+                 const next = [...prevMaze.map(row => [...row])];
+                 next[exitPos.y][exitPos.x] = "path";
+                 next[newExit.y][newExit.x] = "exit";
+                 return next;
+               });
+               setExitPos(newExit);
+             }
+           }
+        }
+
         if (mods.ghostTrail) {
           setLastPos(lp => [prev, ...lp].slice(0, 5));
         }
@@ -540,7 +738,7 @@ const MazeGame = () => {
       return prev;
     });
 
-    if (mods.slipperyIce) {
+    if (mods.slipperyIce || mods.lowFriction) {
       setTimeout(() => {
         setPlayerPos(prev => {
           const getNext = (p: Position) => {
@@ -557,6 +755,7 @@ const MazeGame = () => {
           };
           const next = getNext(prev);
           if (!isWall(next)) {
+             if (mods.lowFriction && Math.random() > 0.5) return prev; // random skip for friction? No, friction means sliding.
              if (maze[next.y][next.x] === "exit") {
                setGameWon(true);
                setTimeout(() => setLevel(l => l + 1), 1500);
@@ -589,6 +788,37 @@ const MazeGame = () => {
       return () => clearTimeout(timer);
     }
   }, [mods.autoPilot, gameWon, solutionPath, playerPos.x, playerPos.y, move]);
+
+  useEffect(() => {
+    if (mods.drunkenMaster && !gameWon) {
+      const interval = setInterval(() => {
+        const dirs: ("up" | "down" | "left" | "right")[] = ["up", "down", "left", "right"];
+        const shuffled = [...dirs].sort(() => Math.random() - 0.5);
+        setControlMap({
+          up: shuffled[0],
+          down: shuffled[1],
+          left: shuffled[2],
+          right: shuffled[3],
+        });
+      }, 10000);
+      return () => clearInterval(interval);
+    } else {
+      setControlMap({ up: "up", down: "down", left: "left", right: "right" });
+    }
+  }, [mods.drunkenMaster, gameWon]);
+
+  useEffect(() => {
+    if (mods.windGusts && !gameWon) {
+      const interval = setInterval(() => {
+        if (Math.random() > 0.7) {
+          const dirs: ("up" | "down" | "left" | "right")[] = ["up", "down", "left", "right"];
+          const randomDir = dirs[Math.floor(Math.random() * dirs.length)];
+          move(randomDir);
+        }
+      }, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [mods.windGusts, gameWon, move]);
 
   useEffect(() => {
     if (mods.trailBlazer) {
@@ -634,6 +864,26 @@ const MazeGame = () => {
     localStorage.setItem("maze_mod_xray", mods.xRayVision.toString());
     localStorage.setItem("maze_mod_doublejump", mods.doubleJump.toString());
     localStorage.setItem("maze_mod_speeddemon", mods.speedDemon.toString());
+    localStorage.setItem("maze_mod_glitch", mods.glitchDuck.toString());
+    localStorage.setItem("maze_mod_neon", mods.neonPath.toString());
+    localStorage.setItem("maze_mod_bouncy", mods.bouncyWalls.toString());
+    localStorage.setItem("maze_mod_friction", mods.lowFriction.toString());
+    localStorage.setItem("maze_mod_magnifier", mods.magnifier.toString());
+    localStorage.setItem("maze_mod_camouflage", mods.camouflage.toString());
+    localStorage.setItem("maze_mod_ghostly", mods.ghostlyWalls.toString());
+    localStorage.setItem("maze_mod_strobe", mods.strobe.toString());
+    localStorage.setItem("maze_mod_earthquake", mods.earthquake.toString());
+    localStorage.setItem("maze_mod_windgusts", mods.windGusts.toString());
+    localStorage.setItem("maze_mod_pixelate", mods.pixelate.toString());
+    localStorage.setItem("maze_mod_invert", mods.invertVisuals.toString());
+    localStorage.setItem("maze_mod_fog", mods.fogOfWar.toString());
+    localStorage.setItem("maze_mod_drunken", mods.drunkenMaster.toString());
+    localStorage.setItem("maze_mod_jetpack", mods.jetpack.toString());
+    localStorage.setItem("maze_mod_laser", mods.laserVision.toString());
+    localStorage.setItem("maze_mod_nuclear", mods.nuclearBlast.toString());
+    localStorage.setItem("maze_mod_confetti", mods.confettiTrail.toString());
+    localStorage.setItem("maze_mod_thief", mods.thiefExit.toString());
+    localStorage.setItem("maze_mod_haunted", mods.hauntedMaze.toString());
   }, [level, mods]);
 
   useEffect(() => {
@@ -659,13 +909,18 @@ const MazeGame = () => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const viewportSize = mods.eagleEye ? 25 : (mods.sizeShifter ? (Math.round(Math.sin(frame * 0.1) * 4) + 20) : (level > 100 ? 21 : INITIAL_VIEWPORT_SIZE));
+    const viewportSize = mods.magnifier ? 7 : (mods.eagleEye ? 25 : (mods.sizeShifter ? (Math.round(Math.sin(frame * 0.1) * 4) + 20) : (level > 100 ? 21 : INITIAL_VIEWPORT_SIZE)));
     const canvasWidth = canvas.width;
     const cellSize = canvasWidth / viewportSize;
 
     // Camera follow
     let cameraX = playerPos.x - Math.floor(viewportSize / 2);
     let cameraY = playerPos.y - Math.floor(viewportSize / 2);
+
+    if (mods.earthquake && isMoving) {
+      cameraX += (Math.random() - 0.5) * 0.5;
+      cameraY += (Math.random() - 0.5) * 0.5;
+    }
 
     // Clamp camera
     cameraX = Math.max(0, Math.min(cameraX, maze[0].length - viewportSize));
@@ -720,6 +975,9 @@ const MazeGame = () => {
         const cell = maze[mazeY]?.[mazeX];
 
         if (!cell || cell === "wall") {
+          if (mods.ghostlyWalls) {
+            ctx.globalAlpha = 0.3;
+          }
           if (mods.matrixMode) {
             ctx.fillStyle = "#001100";
             ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
@@ -750,6 +1008,14 @@ const MazeGame = () => {
         } else {
           ctx.fillStyle = mods.discoMode ? "#000" : "#0a0a0a";
           ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+
+          if (mods.neonPath) {
+            ctx.save();
+            ctx.strokeStyle = `hsl(${frame * 6 + (mazeX + mazeY) * 10}, 100%, 50%)`;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x * cellSize + 2, y * cellSize + 2, cellSize - 4, cellSize - 4);
+            ctx.restore();
+          }
 
           // Draw Trail Blazer
           if (mods.trailBlazer && visitedCells.has(`${mazeX},${mazeY}`)) {
@@ -802,8 +1068,18 @@ const MazeGame = () => {
     }
 
     // Draw Player (Duck)
-    const playerScreenX = (playerPos.x - cameraX) * cellSize;
-    const playerScreenY = (playerPos.y - cameraY) * cellSize;
+    let playerScreenX = (playerPos.x - cameraX) * cellSize;
+    let playerScreenY = (playerPos.y - cameraY) * cellSize;
+
+    if (mods.glitchDuck && Math.random() > 0.9) {
+      playerScreenX += (Math.random() - 0.5) * 15;
+      playerScreenY += (Math.random() - 0.5) * 15;
+      ctx.globalAlpha = 0.5;
+    }
+
+    if (mods.camouflage) {
+      ctx.globalAlpha = 0.15;
+    }
 
     // Draw Ghost Trail
     if (mods.ghostTrail) {
@@ -817,13 +1093,25 @@ const MazeGame = () => {
       ctx.globalAlpha = 1.0;
     }
 
+    // Draw Confetti Trail
+    if (mods.confettiTrail && isMoving) {
+      for (let i = 0; i < 5; i++) {
+        ctx.fillStyle = `hsl(${Math.random() * 360}, 70%, 50%)`;
+        ctx.fillRect(
+          playerScreenX + Math.random() * cellSize,
+          playerScreenY + Math.random() * cellSize,
+          4, 4
+        );
+      }
+    }
+
     // Draw Vision Pulse Darkness
-    if (mods.visionPulse || mods.nightVision) {
+    if (mods.visionPulse || mods.nightVision || mods.fogOfWar) {
       const playerCenterX = playerScreenX + cellSize / 2;
       const playerCenterY = playerScreenY + cellSize / 2;
 
-      let revealRadius = mods.nightVision ? cellSize * 4 : cellSize * 1.2; // Min visibility around duck
-      if (!mods.nightVision && pulseCycle < 60) {
+      let revealRadius = mods.nightVision ? cellSize * 4 : (mods.fogOfWar ? cellSize * 1.5 : cellSize * 1.2);
+      if (!mods.nightVision && !mods.fogOfWar && pulseCycle < 60) {
         // Expanding pulse effect
         revealRadius = (pulseCycle / 60) * canvasWidth * 1.2;
       }
@@ -884,7 +1172,8 @@ const MazeGame = () => {
       const accessoryName = customization[type as keyof typeof customization];
       const accessoryPixels = ACCESSORIES[type]?.[accessoryName as string];
       if (accessoryPixels) {
-        drawPixels(accessoryPixels, {
+        const customColors = ACCESSORY_COLORS[type]?.[accessoryName as string];
+        drawPixels(accessoryPixels, customColors || {
           4: "#fff", // Primary Accessory Color
           5: "#555"  // Secondary Accessory Color
         });
@@ -932,6 +1221,29 @@ const MazeGame = () => {
       // Player on minimap
       ctx.fillStyle = "#ff0";
       ctx.fillRect(canvasWidth - mapSize - 10 + playerPos.x * mapCellSize, 10 + playerPos.y * mapCellSize, mapCellSize, mapCellSize);
+    }
+
+    if (mods.hauntedMaze && frame % 120 < 40) {
+      const ghostX = Math.floor(Math.sin(frame * 0.05) * 5) + playerPos.x;
+      const ghostY = Math.floor(Math.cos(frame * 0.05) * 5) + playerPos.y;
+
+      const gsx = (ghostX - cameraX) * cellSize;
+      const gsy = (ghostY - cameraY) * cellSize;
+
+      ctx.save();
+      ctx.globalAlpha = 0.2;
+      ctx.fillStyle = "white";
+      ctx.beginPath();
+      ctx.arc(gsx + cellSize/2, gsy + cellSize/2, cellSize/3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    if (mods.strobe && Math.random() > 0.95) {
+      ctx.fillStyle = "white";
+      ctx.globalAlpha = 0.1;
+      ctx.fillRect(0, 0, canvasWidth, canvas.height);
+      ctx.globalAlpha = 1.0;
     }
 
     if (mods.staticNoise) {
@@ -1016,6 +1328,50 @@ const MazeGame = () => {
       return next;
     });
   }, [mods.sonicBoom, maze, playerPos]);
+
+  const jetpackJump = useCallback(() => {
+    if (!mods.jetpack || maze.length === 0) return;
+    setPlayerPos(prev => {
+      const targetX = prev.x + (direction === "left" ? -2 : direction === "right" ? 2 : 0);
+      const targetY = prev.y + (direction === "up" ? -2 : direction === "down" ? 2 : 0);
+      if (targetX > 0 && targetX < maze[0].length - 1 && targetY > 0 && targetY < maze.length - 1 && maze[targetY][targetX] !== "wall") {
+        return { x: targetX, y: targetY };
+      }
+      return prev;
+    });
+  }, [mods.jetpack, maze, direction]);
+
+  const laserVision = useCallback(() => {
+    if (!mods.laserVision || maze.length === 0) return;
+    setMaze(prev => {
+      const next = [...prev.map(row => [...row])];
+      for (let i = 1; i <= 5; i++) {
+        const tx = playerPos.x + (direction === "left" ? -i : direction === "right" ? i : 0);
+        const ty = playerPos.y + (direction === "up" ? -i : direction === "down" ? i : 0);
+        if (tx > 0 && tx < maze[0].length - 1 && ty > 0 && ty < maze.length - 1) {
+          if (next[ty][tx] === "wall") next[ty][tx] = "path";
+        }
+      }
+      return next;
+    });
+  }, [mods.laserVision, maze, playerPos, direction]);
+
+  const nuclearBlast = useCallback(() => {
+    if (!mods.nuclearBlast || maze.length === 0) return;
+    setMaze(prev => {
+      const next = [...prev.map(row => [...row])];
+      for (let dy = -2; dy <= 2; dy++) {
+        for (let dx = -2; dx <= 2; dx++) {
+          const tx = playerPos.x + dx;
+          const ty = playerPos.y + dy;
+          if (tx > 0 && tx < maze[0].length - 1 && ty > 0 && ty < maze.length - 1) {
+            if (next[ty][tx] === "wall") next[ty][tx] = "path";
+          }
+        }
+      }
+      return next;
+    });
+  }, [mods.nuclearBlast, maze, playerPos]);
 
   const startMoving = (dir: "up" | "down" | "left" | "right") => {
     stopMoving();
@@ -1110,7 +1466,14 @@ const MazeGame = () => {
           ref={canvasRef}
           width={432}
           height={432}
-          className="max-w-full aspect-square border-2 border-primary/20 shadow-[0_0_20px_rgba(34,197,94,0.1)]"
+          className={cn(
+            "max-w-full aspect-square border-2 border-primary/20 shadow-[0_0_20px_rgba(34,197,94,0.1)] transition-all duration-300",
+            mods.pixelate && "image-pixelated",
+            mods.invertVisuals && "invert"
+          )}
+          style={{
+            filter: mods.invertVisuals ? "invert(1)" : ""
+          }}
         />
 
         {gameWon && (
@@ -1127,29 +1490,31 @@ const MazeGame = () => {
       {showEditDuck && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowEditDuck(false)} />
-          <div className="relative w-full max-w-sm bg-zinc-900 border border-white/10 rounded-2xl p-6 space-y-6 animate-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh] no-scrollbar">
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-primary flex items-center gap-2">
-                <Shirt size={18} />
+          <div className="relative w-full max-w-xs bg-zinc-900 border border-white/10 rounded-2xl p-4 space-y-4 animate-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh] no-scrollbar shadow-2xl">
+            <div className="flex items-center justify-between sticky top-0 bg-zinc-900 py-2 z-10">
+              <h3 className="font-bold text-primary flex items-center gap-2 text-sm">
+                <Shirt size={16} />
                 CUSTOMIZE_DUCK
               </h3>
               <button onClick={() => setShowEditDuck(false)} className="text-muted-foreground hover:text-white">
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
 
-            <div className="space-y-4">
+            <DuckLivePreview customization={customization} />
+
+            <div className="grid grid-cols-2 gap-4">
               {/* Color Selection */}
-              <div className="space-y-2">
-                <label className="text-[10px] text-muted-foreground uppercase tracking-wider">Duck Color</label>
-                <div className="flex flex-wrap gap-2">
+              <div className="col-span-2 space-y-2 bg-black/20 p-3 rounded-xl border border-white/5">
+                <label className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold">Duck Color</label>
+                <div className="flex flex-wrap gap-2 justify-between">
                   {DUCK_COLORS.map(c => (
                     <button
                       key={c.name}
                       onClick={() => setCustomization(prev => ({ ...prev, color: c.value }))}
                       className={cn(
-                        "w-8 h-8 rounded-lg border-2 transition-all",
-                        customization.color === c.value ? "border-white scale-110" : "border-transparent opacity-60"
+                        "w-6 h-6 rounded-md border-2 transition-all",
+                        customization.color === c.value ? "border-primary scale-110 shadow-[0_0_10px_rgba(34,197,94,0.3)]" : "border-transparent opacity-60"
                       )}
                       style={{ backgroundColor: c.value }}
                       title={c.name}
@@ -1160,15 +1525,15 @@ const MazeGame = () => {
 
               {/* Accessories */}
               {Object.entries(ACCESSORIES).map(([type, items]) => (
-                <div key={type} className="space-y-2">
-                  <label className="text-[10px] text-muted-foreground uppercase tracking-wider">{type}</label>
-                  <div className="flex flex-wrap gap-2">
+                <div key={type} className="space-y-2 bg-black/20 p-2.5 rounded-xl border border-white/5">
+                  <label className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold">{type}</label>
+                  <div className="flex flex-wrap gap-1">
                     {Object.keys(items).map(name => (
                       <button
                         key={name}
                         onClick={() => setCustomization(prev => ({ ...prev, [type]: name }))}
                         className={cn(
-                          "px-3 py-1.5 rounded-lg border text-[10px] font-bold transition-all uppercase",
+                          "px-2 py-1 rounded-md border text-[8px] font-bold transition-all uppercase flex-1 text-center min-w-[40%]",
                           customization[type as keyof typeof customization] === name
                             ? "bg-primary text-black border-primary"
                             : "bg-black/40 text-muted-foreground border-white/10 hover:border-white/20"
@@ -1228,372 +1593,72 @@ const MazeGame = () => {
       {showModStore && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowModStore(false)} />
-          <div className="relative w-full max-w-sm bg-zinc-900 border border-white/10 rounded-2xl p-6 space-y-6 animate-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh] no-scrollbar">
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-primary flex items-center gap-2 text-sm">
-                <ShoppingBag size={18} />
-                MOD_STORE
-              </h3>
-              <button onClick={() => setShowModStore(false)} className="text-muted-foreground hover:text-white">
-                <X size={20} />
-              </button>
+          <div className="relative w-full max-w-sm bg-zinc-900 border border-white/10 rounded-2xl p-0 flex flex-col animate-in zoom-in-95 duration-200 overflow-hidden max-h-[90vh] shadow-2xl">
+            <div className="p-6 border-b border-white/10 bg-zinc-900 sticky top-0 z-20 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-primary flex items-center gap-2 text-sm uppercase tracking-tighter">
+                  <ShoppingBag size={18} />
+                  MOD_STORE_V2.0
+                </h3>
+                <button onClick={() => setShowModStore(false)} className="text-muted-foreground hover:text-white transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
+                <input
+                  type="text"
+                  placeholder="SEARCH_MODS..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-black border border-white/10 rounded-xl py-2 pl-9 pr-4 text-[10px] text-primary focus:outline-none focus:border-primary transition-all placeholder:text-zinc-700"
+                />
+              </div>
             </div>
 
-            <div className="grid gap-3">
-              {/* Super Speed */}
-              <ModItem
-                icon={Zap}
-                title="SUPER SPEED"
-                description="Duck runs faster and overshoots until hitting a wall."
-                pros="Significantly faster movement."
-                cons="Cannot stop at junctions; must hit a wall to turn."
-                active={mods.superSpeed}
-                onToggle={() => setMods(m => ({ ...m, superSpeed: !m.superSpeed }))}
-              />
-
-              {/* Random Placement */}
-              <div className="bg-black/40 border border-white/5 rounded-xl p-3 space-y-3">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-zinc-800 text-primary">
-                      <Dices size={18} />
+            <div className="flex-1 overflow-y-auto p-6 space-y-3 no-scrollbar pb-20">
+              {/* Special Action: Random Placement */}
+              {(!searchQuery || "random placement".includes(searchQuery.toLowerCase())) && (
+                <div className="bg-black/40 border border-white/5 rounded-xl p-3 space-y-3 hover:border-primary/20 transition-all group">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-zinc-800 text-primary group-hover:scale-110 transition-transform">
+                        <Dices size={18} />
+                      </div>
+                      <div>
+                        <h4 className="text-[11px] font-bold">RANDOM PLACEMENT</h4>
+                        <p className="text-[9px] text-muted-foreground mt-0.5">Spawn the duck randomly anywhere in the maze.</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-[11px] font-bold">RANDOM PLACEMENT</h4>
-                      <p className="text-[9px] text-muted-foreground mt-0.5">Spawn the duck randomly anywhere in the maze.</p>
-                    </div>
+                    <button
+                      onClick={randomizePosition}
+                      className="px-3 py-1 bg-primary text-black text-[9px] font-bold rounded-lg hover:bg-primary/90 active:scale-95 transition-all shadow-lg shadow-primary/20"
+                    >
+                      ACTIVATE
+                    </button>
                   </div>
-                  <button
-                    onClick={randomizePosition}
-                    className="px-3 py-1 bg-primary text-black text-[9px] font-bold rounded-lg hover:bg-primary/90 active:scale-95 transition-all"
-                  >
-                    ACTIVATE
-                  </button>
+                  <div className="grid grid-cols-2 gap-2 text-[8px]">
+                    <div className="text-green-500/80 uppercase font-mono tracking-tighter">PROS:: BYPASS_SECTIONS</div>
+                    <div className="text-red-500/80 uppercase font-mono tracking-tighter">CONS:: TELEPORT_AWAY</div>
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-[8px]">
-                  <div className="text-green-500/80">PROS:: CAN BYPASS LARGE SECTIONS.</div>
-                  <div className="text-red-500/80">CONS:: MIGHT TELEPORT FURTHER AWAY.</div>
-                </div>
-              </div>
+              )}
 
-              {/* Path Finder */}
-              <ModItem
-                icon={Route}
-                title="PATH FINDER"
-                description="Show the optimal path to the exit."
-                pros="Guaranteed route to the finish."
-                cons="Removes the challenge of exploration."
-                active={mods.pathFinder}
-                onToggle={() => setMods(m => ({ ...m, pathFinder: !m.pathFinder }))}
-              />
-
-              {/* Random Exit */}
-              <ModItem
-                icon={Shuffle}
-                title="RANDOM EXIT"
-                description="Exit spawns at a random path location."
-                pros="More unpredictable level generation."
-                cons="Exit might be closer than expected."
-                active={mods.randomExit}
-                onToggle={() => setMods(m => ({ ...m, randomExit: !m.randomExit }))}
-              />
-
-              {/* Ghost Duck */}
-              <ModItem
-                icon={Ghost}
-                title="GHOST DUCK"
-                description="Phase through walls to reach adjacent paths."
-                pros="Can take shortcuts through walls."
-                cons="Cannot stop inside walls; must reach a path."
-                active={mods.ghostDuck}
-                onToggle={() => setMods(m => ({ ...m, ghostDuck: !m.ghostDuck }))}
-              />
-
-              {/* Vision Pulse */}
-              <ModItem
-                icon={Radar}
-                title="VISION PULSE"
-                description="The maze is dark, revealed only by periodic sonar pulses."
-                pros="Adds a thrilling, high-stakes atmosphere."
-                cons="Extremely difficult to navigate in the dark."
-                active={mods.visionPulse}
-                onToggle={() => setMods(m => ({ ...m, visionPulse: !m.visionPulse }))}
-              />
-
-              {/* Eagle Eye */}
-              <ModItem
-                icon={Expand}
-                title="EAGLE EYE"
-                description="Zoom out to see a much larger portion of the maze."
-                pros="Easier to plan long routes."
-                cons="Smaller view; harder to see details."
-                active={mods.eagleEye}
-                onToggle={() => setMods(m => ({ ...m, eagleEye: !m.eagleEye }))}
-              />
-
-              {/* Auto-Pilot */}
-              <ModItem
-                icon={Play}
-                title="AUTO-PILOT"
-                description="The duck automatically moves toward the exit."
-                pros="Perfect for effortless navigation."
-                cons="Removes the challenge entirely."
-                active={mods.autoPilot}
-                onToggle={() => setMods(m => ({ ...m, autoPilot: !m.autoPilot }))}
-              />
-
-              {/* Warp Portals */}
-              <ModItem
-                icon={Waypoints}
-                title="WARP PORTALS"
-                description="Randomly spawns two interconnected teleportation portals."
-                pros="Can skip massive sections of the maze."
-                cons="Placement is random and might be inconvenient."
-                active={mods.warpPortals}
-                onToggle={() => setMods(m => ({ ...m, warpPortals: !m.warpPortals }))}
-              />
-
-              {/* Trail Blazer */}
-              <ModItem
-                icon={Footprints}
-                title="TRAIL BLAZER"
-                description="Leave a permanent glowing trail on visited cells."
-                pros="Excellent for tracking visited paths."
-                cons="Visual clutter in dense levels."
-                active={mods.trailBlazer}
-                onToggle={() => setMods(m => ({ ...m, trailBlazer: !m.trailBlazer }))}
-              />
-
-              {/* Wall Breaker */}
-              <ModItem
-                icon={Flame}
-                title="WALL BREAKER"
-                description="Fire a beam to break walls in front of you."
-                pros="Can create shortcuts through walls."
-                cons="Might bypass intended puzzle logic."
-                active={mods.wallBreaker}
-                onToggle={() => setMods(m => ({ ...m, wallBreaker: !m.wallBreaker }))}
-              />
-
-              {/* Mirror Mode */}
-              <ModItem
-                icon={RefreshCcw}
-                title="MIRROR MODE"
-                description="Directional controls are completely reversed."
-                pros="Adds a unique mental challenge."
-                cons="Very confusing at first."
-                active={mods.mirrorMode}
-                onToggle={() => setMods(m => ({ ...m, mirrorMode: !m.mirrorMode }))}
-              />
-
-              {/* Slippery Ice */}
-              <ModItem
-                icon={Snowflake}
-                title="SLIPPERY ICE"
-                description="The floor is ice! You slide 1 cell after moving."
-                pros="Allows for faster traversal."
-                cons="Harder to stop exactly where you want."
-                active={mods.slipperyIce}
-                onToggle={() => setMods(m => ({ ...m, slipperyIce: !m.slipperyIce }))}
-              />
-
-              {/* Night Vision */}
-              <ModItem
-                icon={Eye}
-                title="NIGHT VISION"
-                description="See clearly even in the dark (wider vision range)."
-                pros="Easier to see the path ahead."
-                cons="Removes the mystery of the dark."
-                active={mods.nightVision}
-                onToggle={() => setMods(m => ({ ...m, nightVision: !m.nightVision }))}
-              />
-
-              {/* Sonic Boom */}
-              <ModItem
-                icon={Bomb}
-                title="SONIC BOOM"
-                description="Release a blast that destroys all surrounding walls."
-                pros="Clears massive paths instantly."
-                cons="Limited use suggested (manual trigger)."
-                active={mods.sonicBoom}
-                onToggle={() => setMods(m => ({ ...m, sonicBoom: !m.sonicBoom }))}
-              />
-
-              {/* Compass */}
-              <ModItem
-                icon={Compass}
-                title="COMPASS"
-                description="An arrow always points towards the exit."
-                pros="Never get lost again."
-                cons="Makes exploration trivial."
-                active={mods.compass}
-                onToggle={() => setMods(m => ({ ...m, compass: !m.compass }))}
-              />
-
-              {/* Rainbow Duck */}
-              <ModItem
-                icon={Palette}
-                title="RAINBOW DUCK"
-                description="Your duck cycles through a spectrum of colors."
-                pros="Purely aesthetic and beautiful."
-                cons="No gameplay advantage."
-                active={mods.rainbowDuck}
-                onToggle={() => setMods(m => ({ ...m, rainbowDuck: !m.rainbowDuck }))}
-              />
-
-              {/* Size Shifter */}
-              <ModItem
-                icon={Scaling}
-                title="SIZE SHIFTER"
-                description="The world pulsates, changing your view size."
-                pros="Dynamic and trippy gameplay."
-                cons="Can be disorienting."
-                active={mods.sizeShifter}
-                onToggle={() => setMods(m => ({ ...m, sizeShifter: !m.sizeShifter }))}
-              />
-
-              {/* Matrix Mode */}
-              <ModItem
-                icon={Binary}
-                title="MATRIX MODE"
-                description="The maze is made of falling green code."
-                pros="Look like a pro hacker."
-                cons="Harder to distinguish paths."
-                active={mods.matrixMode}
-                onToggle={() => setMods(m => ({ ...m, matrixMode: !m.matrixMode }))}
-              />
-
-              {/* Hardcore Mode */}
-              <ModItem
-                icon={Skull}
-                title="HARDCORE MODE"
-                description="Hitting a wall resets you to the start."
-                pros="The ultimate challenge."
-                cons="Extremely punishing."
-                active={mods.hardcoreMode}
-                onToggle={() => setMods(m => ({ ...m, hardcoreMode: !m.hardcoreMode }))}
-              />
-
-              {/* Time Warp */}
-              <ModItem
-                icon={Clock}
-                title="TIME WARP"
-                description="Slow down time for more precise movement."
-                pros="Great for difficult sections."
-                cons="Game takes longer to complete."
-                active={mods.timeWarp}
-                onToggle={() => setMods(m => ({ ...m, timeWarp: !m.timeWarp }))}
-              />
-
-              {/* Gravity Flip */}
-              <ModItem
-                icon={ArrowDownUp}
-                title="GRAVITY FLIP"
-                description="The entire game is flipped upside down."
-                pros="A literal new perspective."
-                cons="Controls and visuals are inverted."
-                active={mods.gravityFlip}
-                onToggle={() => setMods(m => ({ ...m, gravityFlip: !m.gravityFlip }))}
-              />
-
-              {/* Disco Mode */}
-              <ModItem
-                icon={Music}
-                title="DISCO MODE"
-                description="Flashy cycling colors for the whole maze."
-                pros="Perfect for a party atmosphere."
-                cons="May cause eye strain."
-                active={mods.discoMode}
-                onToggle={() => setMods(m => ({ ...m, discoMode: !m.discoMode }))}
-              />
-
-              {/* Minimap */}
-              <ModItem
-                icon={Map}
-                title="MINIMAP"
-                description="Shows a small overview of the entire maze."
-                pros="Helps with long-distance planning."
-                cons="Takes up screen space."
-                active={mods.minimap}
-                onToggle={() => setMods(m => ({ ...m, minimap: !m.minimap }))}
-              />
-
-              {/* Ghost Trail */}
-              <ModItem
-                icon={History}
-                title="GHOST TRAIL"
-                description="Leave a fading trail of where you just were."
-                pros="Helps track recent movements."
-                cons="Can be slightly distracting."
-                active={mods.ghostTrail}
-                onToggle={() => setMods(m => ({ ...m, ghostTrail: !m.ghostTrail }))}
-              />
-
-              {/* Portal Master */}
-              <ModItem
-                icon={Infinity}
-                title="PORTAL MASTER"
-                description="Generates 4 portals instead of 2."
-                pros="Create a complex network of skips."
-                cons="Makes the maze very unpredictable."
-                active={mods.portalMaster}
-                onToggle={() => setMods(m => ({ ...m, portalMaster: !m.portalMaster }))}
-              />
-
-              {/* Blink Dash */}
-              <ModItem
-                icon={Wind}
-                title="BLINK DASH"
-                description="Teleport 2 cells forward, bypassing any walls."
-                pros="Instant shortcuts through any barrier."
-                cons="Requires manual trigger in the controller."
-                active={mods.blinkDash}
-                onToggle={() => setMods(m => ({ ...m, blinkDash: !m.blinkDash }))}
-              />
-
-              {/* Static Noise */}
-              <ModItem
-                icon={Activity}
-                title="STATIC NOISE"
-                description="Adds flickering visual interference to the maze."
-                pros="A true test of your concentration."
-                cons="Highly disorienting visuals."
-                active={mods.staticNoise}
-                onToggle={() => setMods(m => ({ ...m, staticNoise: !m.staticNoise }))}
-              />
-
-              {/* X-Ray Vision */}
-              <ModItem
-                icon={Scan}
-                title="X-RAY VISION"
-                description="The exit location is always visible through walls."
-                pros="Always know exactly where to go."
-                cons="Reduces the need for exploration."
-                active={mods.xRayVision}
-                onToggle={() => setMods(m => ({ ...m, xRayVision: !m.xRayVision }))}
-              />
-
-              {/* Double Jump */}
-              <ModItem
-                icon={ArrowUpCircle}
-                title="DOUBLE JUMP"
-                description="Move 2 cells at once when the path is clear."
-                pros="Vastly increases your travel speed."
-                cons="Harder to control in tight corridors."
-                active={mods.doubleJump}
-                onToggle={() => setMods(m => ({ ...m, doubleJump: !m.doubleJump }))}
-              />
-
-              {/* Speed Demon */}
-              <ModItem
-                icon={FastForward}
-                title="SPEED DEMON"
-                description="Movement speed scales up the longer you move."
-                pros="Incredible top speeds for long straights."
-                cons="Becomes difficult to react at high speed."
-                active={mods.speedDemon}
-                onToggle={() => setMods(m => ({ ...m, speedDemon: !m.speedDemon }))}
-              />
+              {MOD_LIST.filter(m =>
+                m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                m.description.toLowerCase().includes(searchQuery.toLowerCase())
+              ).map(mod => (
+                <ModItem
+                  key={mod.id}
+                  icon={mod.icon}
+                  title={mod.title}
+                  description={mod.description}
+                  pros={mod.pros}
+                  cons={mod.cons}
+                  active={mods[mod.id as keyof typeof mods]}
+                  onToggle={() => setMods(m => ({ ...m, [mod.id]: !m[mod.id as keyof typeof mods] }))}
+                />
+              ))}
             </div>
           </div>
         </div>
@@ -1652,6 +1717,33 @@ const MazeGame = () => {
                  title="Blink Dash"
                >
                  <Wind size={14} className="text-blue-500" />
+               </button>
+             )}
+             {mods.jetpack && (
+               <button
+                 onClick={jetpackJump}
+                 className="w-8 h-8 rounded-lg bg-purple-500/20 border border-purple-500/50 flex items-center justify-center active:scale-95 transition-all"
+                 title="Jetpack"
+               >
+                 <Rocket size={14} className="text-purple-500" />
+               </button>
+             )}
+             {mods.laserVision && (
+               <button
+                 onClick={laserVision}
+                 className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/50 flex items-center justify-center active:scale-95 transition-all"
+                 title="Laser Vision"
+               >
+                 <Aperture size={14} className="text-cyan-500" />
+               </button>
+             )}
+             {mods.nuclearBlast && (
+               <button
+                 onClick={nuclearBlast}
+                 className="w-8 h-8 rounded-lg bg-yellow-500/20 border border-yellow-500/50 flex items-center justify-center active:scale-95 transition-all"
+                 title="Nuclear Blast"
+               >
+                 <Radiation size={14} className="text-yellow-500" />
                </button>
              )}
              {!mods.wallBreaker && !mods.sonicBoom && !mods.blinkDash && (
