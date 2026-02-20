@@ -2,13 +2,17 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Download, RefreshCw, Image as ImageIcon } from "lucide-react";
+import { Download, RefreshCw, Image as ImageIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Settings2, X } from "lucide-react";
 import { toast } from "sonner";
 
 const SJ = () => {
   const [title, setTitle] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [fontSize, setFontSize] = useState(70);
+  const [dateXOffset, setDateXOffset] = useState(-40);
+  const [dateYOffset, setDateYOffset] = useState(-30);
+  const [dateFontSize, setDateFontSize] = useState(20);
+  const [showSettings, setShowSettings] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -144,7 +148,7 @@ const SJ = () => {
       // 2. Ensure fonts are loaded
       await Promise.all([
         document.fonts.load(`bold ${fontSize}px "Cambria"`),
-        document.fonts.load('26px "Cambria"')
+        document.fonts.load(`${dateFontSize}px "Cambria"`)
       ]).catch(e => console.warn('Font loading failed:', e));
 
       // 3. Draw User Image
@@ -194,11 +198,11 @@ const SJ = () => {
       ctx.restore();
 
       // 4. Draw Date (Double size)
-      ctx.font = '26px "Cambria"';
+      ctx.font = `${dateFontSize}px "Cambria"`;
       ctx.fillStyle = 'white';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
-      ctx.fillText(formatDate(new Date()).toUpperCase(), DATE_X, DATE_Y);
+      ctx.fillText(formatDate(new Date()), DATE_X + dateXOffset, DATE_Y + dateYOffset);
 
       // 5. Draw Title with Auto-scaling
       let currentFontSize = fontSize;
@@ -232,7 +236,7 @@ const SJ = () => {
 
       if (lines[1]) {
         // Use a slightly larger multiplier for line spacing to avoid overlap at large sizes
-        const spacing = currentFontSize * 0.6;
+        const spacing = currentFontSize * 0.45;
         ctx.fillText(lines[0], TITLE_X, TITLE_Y - spacing);
         ctx.fillText(lines[1], TITLE_X, TITLE_Y + spacing);
       } else {
@@ -287,18 +291,6 @@ const SJ = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="fontSize">Font Size ({fontSize}px)</Label>
-                <Input
-                  id="fontSize"
-                  type="number"
-                  min="20"
-                  max="150"
-                  value={fontSize}
-                  onChange={(e) => setFontSize(parseInt(e.target.value) || 70)}
-                  className="bg-surface-2 border-border"
-                />
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="imageUrl">Image URL</Label>
                 <div className="flex gap-2">
                   <Input
@@ -315,18 +307,28 @@ const SJ = () => {
               </div>
             </div>
 
-            <Button
-              className="w-full"
-              onClick={generatePhotoCard}
-              disabled={isGenerating}
-            >
-              {isGenerating ? (
-                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <ImageIcon className="mr-2 h-4 w-4" />
-              )}
-              Generate Preview
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                className="flex-1"
+                onClick={generatePhotoCard}
+                disabled={isGenerating}
+              >
+                {isGenerating ? (
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <ImageIcon className="mr-2 h-4 w-4" />
+                )}
+                Generate Preview
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setShowSettings(true)}
+                className="border-border hover:bg-surface-2"
+              >
+                <Settings2 className="h-4 w-4" />
+              </Button>
+            </div>
 
             {previewUrl && (
               <Button
@@ -364,6 +366,69 @@ const SJ = () => {
           </div>
         </div>
       </div>
+
+      {showSettings && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-mono">
+          <div className="bg-surface-1 border border-border rounded-xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="p-4 border-b border-border flex items-center justify-between bg-surface-2">
+              <h3 className="font-bold text-foreground flex items-center gap-2">
+                <Settings2 className="h-4 w-4" />
+                ADVANCED SETTINGS
+              </h3>
+              <Button variant="ghost" size="icon" onClick={() => setShowSettings(false)} className="h-8 w-8 hover:bg-surface-3">
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="space-y-2">
+                <Label className="text-muted-foreground text-xs uppercase tracking-wider">Title Font Size ({fontSize}px)</Label>
+                <Input
+                  type="number"
+                  min="20"
+                  max="150"
+                  value={fontSize}
+                  onChange={(e) => setFontSize(parseInt(e.target.value) || 70)}
+                  className="bg-surface-2 border-border"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-muted-foreground text-xs uppercase tracking-wider">Date Font Size ({dateFontSize}px)</Label>
+                <Input
+                  type="number"
+                  min="10"
+                  max="100"
+                  value={dateFontSize}
+                  onChange={(e) => setDateFontSize(parseInt(e.target.value) || 20)}
+                  className="bg-surface-2 border-border"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-muted-foreground text-xs uppercase tracking-wider">Date Position</Label>
+                <div className="flex flex-col items-center gap-2 bg-surface-2 p-4 rounded-lg border border-border">
+                  <Button variant="outline" size="icon" onClick={() => setDateYOffset(prev => prev - 5)} className="h-8 w-8 bg-surface-1"><ChevronUp className="h-4 w-4" /></Button>
+                  <div className="flex items-center gap-4">
+                    <Button variant="outline" size="icon" onClick={() => setDateXOffset(prev => prev - 5)} className="h-8 w-8 bg-surface-1"><ChevronLeft className="h-4 w-4" /></Button>
+                    <div className="w-20 text-center text-[10px] font-mono text-muted-foreground bg-surface-1 border border-border py-1 rounded">
+                      {dateXOffset}, {dateYOffset}
+                    </div>
+                    <Button variant="outline" size="icon" onClick={() => setDateXOffset(prev => prev + 5)} className="h-8 w-8 bg-surface-1"><ChevronRight className="h-4 w-4" /></Button>
+                  </div>
+                  <Button variant="outline" size="icon" onClick={() => setDateYOffset(prev => prev + 5)} className="h-8 w-8 bg-surface-1"><ChevronDown className="h-4 w-4" /></Button>
+                </div>
+              </div>
+
+              <Button
+                onClick={() => setShowSettings(false)}
+                className="w-full"
+              >
+                Apply & Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
