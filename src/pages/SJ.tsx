@@ -13,6 +13,7 @@ const SJ = () => {
   const [dateXOffset, setDateXOffset] = useState(-40);
   const [dateYOffset, setDateYOffset] = useState(-30);
   const [dateFontSize, setDateFontSize] = useState(20);
+  const [titleLetterSpacing, setTitleLetterSpacing] = useState(-1.2);
   const [showSettings, setShowSettings] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -218,7 +219,7 @@ const SJ = () => {
       ctx.textBaseline = 'middle';
 
       // Decrease letter spacing
-      ctx.letterSpacing = "-0.8px";
+      ctx.letterSpacing = `${titleLetterSpacing}px`;
 
       const maxW = 980;
       let lines: string[] = [];
@@ -424,6 +425,19 @@ const SJ = () => {
                   max="150"
                   value={fontSize}
                   onChange={(e) => setFontSize(parseInt(e.target.value) || 70)}
+                  className="bg-surface-2 border-border"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-muted-foreground text-xs uppercase tracking-wider">Title Letter Spacing ({titleLetterSpacing}px)</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  min="-10"
+                  max="10"
+                  value={titleLetterSpacing}
+                  onChange={(e) => setTitleLetterSpacing(parseFloat(e.target.value) || 0)}
                   className="bg-surface-2 border-border"
                 />
               </div>
