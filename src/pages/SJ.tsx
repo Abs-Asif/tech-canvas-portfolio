@@ -100,32 +100,25 @@ const SJ = () => {
     throw new Error("Failed to load image. Make sure your url is valid and allows cors.");
   };
 
-  const splitTitle = (text: string) => {
+  const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number) => {
     const words = text.split(' ');
-    if (words.length < 2) return [text, ''];
+    const lines = [];
+    let currentLine = '';
 
-    let mid = Math.floor(text.length / 2);
-    let bestSplit = 0;
-    let minDiff = Infinity;
-
-    let currentPos = 0;
-    // For 3+ words, we must have at least 2 words on second line
-    const maxSplitIndex = words.length >= 3 ? words.length - 3 : words.length - 2;
-
-    for (let i = 0; i <= maxSplitIndex; i++) {
-      currentPos += words[i].length;
-      let diff = Math.abs(currentPos - mid);
-      if (diff <= minDiff) {
-        minDiff = diff;
-        bestSplit = i;
+    for (let i = 0; i < words.length; i++) {
+      const word = words[i];
+      const testLine = currentLine ? currentLine + ' ' + word : word;
+      const metrics = ctx.measureText(testLine);
+      const testWidth = metrics.width;
+      if (testWidth > maxWidth && i > 0) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
       }
-      currentPos += 1; // for space
     }
-
-    return [
-      words.slice(0, bestSplit + 1).join(' '),
-      words.slice(bestSplit + 1).join(' ')
-    ];
+    lines.push(currentLine);
+    return lines;
   };
 
   const generatePhotoCard = async () => {
@@ -218,47 +211,51 @@ const SJ = () => {
       ctx.textBaseline = 'middle';
       ctx.fillText(formatDate(new Date()), DATE_X + dateXOffset, DATE_Y + dateYOffset);
 
-      // 5. Draw Title with Auto-scaling
+      // 5. Draw Title with Dynamic Line Management
       let currentFontSize = fontSize;
       ctx.fillStyle = 'white';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
-      // Decrease letter spacing by a very little amount
-      ctx.letterSpacing = "-0.4px";
+      // Decrease letter spacing
+      ctx.letterSpacing = "-0.8px";
 
-      const lines = splitTitle(title);
-      const maxW = 980; // Allow some margin
+      const maxW = 980;
+      let lines: string[] = [];
 
-      const checkAndScale = () => {
-        ctx.font = `bold ${currentFontSize}px "Cambria"`;
-        if (lines[1]) {
-          const w1 = ctx.measureText(lines[0]).width;
-          const w2 = ctx.measureText(lines[1]).width;
-          const maxLineW = Math.max(w1, w2);
-          if (maxLineW > maxW) {
+      const performLayout = () => {
+        let attempts = 0;
+        while (attempts < 10) {
+          ctx.font = `bold ${currentFontSize}px "Cambria"`;
+          lines = wrapText(ctx, title, maxW);
+
+          let maxLineW = 0;
+          lines.forEach(l => {
+            maxLineW = Math.max(maxLineW, ctx.measureText(l).width);
+          });
+
+          if (lines.length <= 3 && maxLineW <= maxW) {
+            break;
+          }
+
+          if (lines.length > 3) {
+            currentFontSize *= 0.9;
+          } else if (maxLineW > maxW) {
             currentFontSize *= (maxW / maxLineW);
-            ctx.font = `bold ${currentFontSize}px "Cambria"`;
           }
-        } else {
-          const w = ctx.measureText(lines[0]).width;
-          if (w > maxW) {
-            currentFontSize *= (maxW / w);
-            ctx.font = `bold ${currentFontSize}px "Cambria"`;
-          }
+          attempts++;
         }
       };
 
-      checkAndScale();
+      performLayout();
 
-      if (lines[1]) {
-        // Use a slightly larger multiplier for line spacing to avoid overlap at large sizes
-        const spacing = currentFontSize * 0.45;
-        ctx.fillText(lines[0], TITLE_X, TITLE_Y - spacing);
-        ctx.fillText(lines[1], TITLE_X, TITLE_Y + spacing);
-      } else {
-        ctx.fillText(lines[0], TITLE_X, TITLE_Y);
-      }
+      const lineHeight = currentFontSize * 0.9;
+      const totalHeight = (lines.length - 1) * lineHeight;
+      const startY = TITLE_Y - (totalHeight / 2);
+
+      lines.forEach((line, index) => {
+        ctx.fillText(line, TITLE_X, startY + (index * lineHeight));
+      });
 
       // Reset letter spacing
       ctx.letterSpacing = "0px";
