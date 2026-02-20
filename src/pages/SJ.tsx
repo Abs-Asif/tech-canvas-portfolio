@@ -136,7 +136,13 @@ const SJ = () => {
       });
       ctx.drawImage(template, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-      // 2. Draw User Image
+      // 2. Ensure fonts are loaded
+      await Promise.all([
+        document.fonts.load('bold 40px "Cambria"'),
+        document.fonts.load('13px "Cambria"')
+      ]).catch(e => console.warn('Font loading failed:', e));
+
+      // 3. Draw User Image
       userImgBlobUrl = await fetchImageWithProxy(imageUrl);
       const userImg = new Image();
       userImg.src = userImgBlobUrl;
@@ -152,26 +158,37 @@ const SJ = () => {
       const drawX = BOX.x + (BOX.w - drawW) / 2;
       const drawY = BOX.y + (BOX.h - drawH) / 2;
 
-      // Always apply rounded corners clipping to the BOX area
-      ctx.save();
+      // Rounded corners path
       const radius = 35;
-      ctx.beginPath();
-      ctx.moveTo(BOX.x + radius, BOX.y);
-      ctx.lineTo(BOX.x + BOX.w - radius, BOX.y);
-      ctx.quadraticCurveTo(BOX.x + BOX.w, BOX.y, BOX.x + BOX.w, BOX.y + radius);
-      ctx.lineTo(BOX.x + BOX.w, BOX.y + BOX.h - radius);
-      ctx.quadraticCurveTo(BOX.x + BOX.w, BOX.y + BOX.h, BOX.x + BOX.w - radius, BOX.y + BOX.h);
-      ctx.lineTo(BOX.x + radius, BOX.y + BOX.h);
-      ctx.quadraticCurveTo(BOX.x, BOX.y + BOX.h, BOX.x, BOX.y + BOX.h - radius);
-      ctx.lineTo(BOX.x, BOX.y + radius);
-      ctx.quadraticCurveTo(BOX.x, BOX.y, BOX.x + radius, BOX.y);
-      ctx.closePath();
-      ctx.clip();
+      const defineBoxPath = () => {
+        ctx.beginPath();
+        ctx.moveTo(BOX.x + radius, BOX.y);
+        ctx.lineTo(BOX.x + BOX.w - radius, BOX.y);
+        ctx.quadraticCurveTo(BOX.x + BOX.w, BOX.y, BOX.x + BOX.w, BOX.y + radius);
+        ctx.lineTo(BOX.x + BOX.w, BOX.y + BOX.h - radius);
+        ctx.quadraticCurveTo(BOX.x + BOX.w, BOX.y + BOX.h, BOX.x + BOX.w - radius, BOX.y + BOX.h);
+        ctx.lineTo(BOX.x + radius, BOX.y + BOX.h);
+        ctx.quadraticCurveTo(BOX.x, BOX.y + BOX.h, BOX.x, BOX.y + BOX.h - radius);
+        ctx.lineTo(BOX.x, BOX.y + radius);
+        ctx.quadraticCurveTo(BOX.x, BOX.y, BOX.x + radius, BOX.y);
+        ctx.closePath();
+      };
 
+      ctx.save();
+      defineBoxPath();
+      ctx.clip();
       ctx.drawImage(userImg, drawX, drawY, drawW, drawH);
       ctx.restore();
 
-      // 3. Draw Date
+      // Draw red outline manually as requested (since template outline might be covered)
+      ctx.save();
+      defineBoxPath();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#FF0000';
+      ctx.stroke();
+      ctx.restore();
+
+      // 4. Draw Date
       ctx.font = '13px "Cambria"';
       ctx.fillStyle = 'white';
       ctx.textAlign = 'left';
