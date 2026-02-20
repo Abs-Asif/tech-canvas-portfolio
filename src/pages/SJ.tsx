@@ -2,13 +2,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Download, RefreshCw, Image as ImageIcon } from "lucide-react";
+import { Download, RefreshCw, Image as ImageIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
 const SJ = () => {
   const [title, setTitle] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [fontSize, setFontSize] = useState(70);
+  const [dateXOffset, setDateXOffset] = useState(0);
+  const [dateYOffset, setDateYOffset] = useState(0);
+  const [dateFontSize, setDateFontSize] = useState(26);
   const [isGenerating, setIsGenerating] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -144,7 +147,7 @@ const SJ = () => {
       // 2. Ensure fonts are loaded
       await Promise.all([
         document.fonts.load(`bold ${fontSize}px "Cambria"`),
-        document.fonts.load('26px "Cambria"')
+        document.fonts.load(`${dateFontSize}px "Cambria"`)
       ]).catch(e => console.warn('Font loading failed:', e));
 
       // 3. Draw User Image
@@ -194,11 +197,11 @@ const SJ = () => {
       ctx.restore();
 
       // 4. Draw Date (Double size)
-      ctx.font = '26px "Cambria"';
+      ctx.font = `${dateFontSize}px "Cambria"`;
       ctx.fillStyle = 'white';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
-      ctx.fillText(formatDate(new Date()).toUpperCase(), DATE_X, DATE_Y);
+      ctx.fillText(formatDate(new Date()), DATE_X + dateXOffset, DATE_Y + dateYOffset);
 
       // 5. Draw Title with Auto-scaling
       let currentFontSize = fontSize;
@@ -232,7 +235,7 @@ const SJ = () => {
 
       if (lines[1]) {
         // Use a slightly larger multiplier for line spacing to avoid overlap at large sizes
-        const spacing = currentFontSize * 0.6;
+        const spacing = currentFontSize * 0.45;
         ctx.fillText(lines[0], TITLE_X, TITLE_Y - spacing);
         ctx.fillText(lines[1], TITLE_X, TITLE_Y + spacing);
       } else {
@@ -311,6 +314,48 @@ const SJ = () => {
                   <Button variant="outline" size="icon" onClick={() => setImageUrl('')}>
                     <RefreshCw className="h-4 w-4" />
                   </Button>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-border space-y-4">
+                <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Date Settings</Label>
+
+                <div className="space-y-2">
+                  <Label htmlFor="dateFontSize">Date Font Size ({dateFontSize}px)</Label>
+                  <Input
+                    id="dateFontSize"
+                    type="number"
+                    min="10"
+                    max="100"
+                    value={dateFontSize}
+                    onChange={(e) => setDateFontSize(parseInt(e.target.value) || 26)}
+                    className="bg-surface-2 border-border"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Date Position</Label>
+                  <div className="grid grid-cols-3 gap-2 w-fit mx-auto">
+                    <div />
+                    <Button variant="outline" size="icon" onClick={() => setDateYOffset(prev => prev - 5)}>
+                      <ChevronUp className="h-4 w-4" />
+                    </Button>
+                    <div />
+                    <Button variant="outline" size="icon" onClick={() => setDateXOffset(prev => prev - 5)}>
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <div className="flex items-center justify-center text-xs text-muted-foreground">
+                      {dateXOffset},{dateYOffset}
+                    </div>
+                    <Button variant="outline" size="icon" onClick={() => setDateXOffset(prev => prev + 5)}>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    <div />
+                    <Button variant="outline" size="icon" onClick={() => setDateYOffset(prev => prev + 5)}>
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                    <div />
+                  </div>
                 </div>
               </div>
             </div>
