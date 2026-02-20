@@ -537,14 +537,59 @@ const BanglaGuardian = () => {
   };
 
   const scrapeLatestLinks = async () => {
-    const latestUrl = "https://www.bangladeshguardian.com/latest";
-    let html = '';
+    // We'll try the daily sitemaps (today and yesterday) first since the site is heavily React-rendered
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const dates = [
+      today.toISOString().split('T')[0],
+      yesterday.toISOString().split('T')[0]
+    ];
+
     const proxies = [
-      (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
       (u: string) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
+      (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
       (u: string) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
     ];
 
+    let allLocs: string[] = [];
+
+    for (const dateStr of dates) {
+      const sitemapUrl = `https://www.bangladeshguardian.com/bangla-sitemap/sitemap-daily-${dateStr}.xml`;
+      let xml = '';
+
+      for (const proxy of proxies) {
+        try {
+          const response = await fetch(proxy(sitemapUrl));
+          if (response.ok) {
+            xml = await response.text();
+            if (xml && xml.includes('<loc>')) break;
+          }
+        } catch (e) {
+          console.warn("Proxy failed for sitemap fetch:", e);
+        }
+      }
+
+      if (xml) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(xml, 'application/xml');
+        // Use specific selector to avoid matching image:loc
+        const locs = Array.from(doc.querySelectorAll('url > loc')).map(l => l.textContent).filter(Boolean) as string[];
+        // Add newest from this sitemap to the top
+        allLocs = [...allLocs, ...locs.reverse()];
+      }
+
+      if (allLocs.length >= 12) break;
+    }
+
+    if (allLocs.length > 0) {
+      return allLocs.slice(0, 12);
+    }
+
+    // Fallback to scraping the /latest page if sitemap fails
+    const latestUrl = "https://www.bangladeshguardian.com/latest";
+    let html = '';
     for (const proxy of proxies) {
       try {
         const response = await fetch(proxy(latestUrl));
@@ -553,7 +598,7 @@ const BanglaGuardian = () => {
           if (html && html.includes('href=')) break;
         }
       } catch (e) {
-        console.warn("Proxy failed for link scraping:", e);
+        console.warn("Proxy failed for fallback scraping:", e);
       }
     }
 
@@ -562,7 +607,9 @@ const BanglaGuardian = () => {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
     const links = Array.from(doc.querySelectorAll('a'))
-      .map(a => a.href)
+      .map(a => a.getAttribute('href'))
+      .filter(Boolean)
+      .map(href => (href!.startsWith('/') ? `https://www.bangladeshguardian.com${href}` : href!))
       .filter(href => {
         try {
           const url = new URL(href);
@@ -575,8 +622,7 @@ const BanglaGuardian = () => {
         }
       });
 
-    const uniqueLinks = Array.from(new Set(links)).slice(0, 12);
-    return uniqueLinks;
+    return Array.from(new Set(links)).slice(0, 12);
   };
 
   const checkAndGenerate = async () => {
@@ -747,7 +793,7 @@ const BanglaGuardian = () => {
                     onClick={() => handlePaste(setTitle)}
                     className="shrink-0"
                     title="Paste from clipboard"
-                  >
+                    >
                     <ClipboardPaste className="h-4 w-4" />
                   </Button>
                 </div>
