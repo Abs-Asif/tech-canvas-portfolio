@@ -7,6 +7,8 @@ import { Download, RefreshCw, Image as ImageIcon, ChevronUp, ChevronDown, Chevro
 import { toast } from "sonner";
 
 const SJ = () => {
+  const [postUrl, setPostUrl] = useState('');
+  const [isFetching, setIsFetching] = useState(false);
   const [title, setTitle] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [fontSize, setFontSize] = useState(70);
@@ -19,6 +21,94 @@ const SJ = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [generatedTitle, setGeneratedTitle] = useState('');
+
+  const fetchPostData = async () => {
+    const trimmedUrl = postUrl.trim();
+    if (!trimmedUrl) {
+      toast.error("Please enter a Post URL");
+      return;
+    }
+
+    if (!trimmedUrl.includes('bangladeshguardian.com')) {
+      toast.error("Only bangladeshguardian.com links are supported");
+      return;
+    }
+
+    setIsFetching(true);
+    let html = '';
+
+    const proxies = [
+      {
+        url: (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+        type: 'text'
+      },
+      {
+        url: (u: string) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
+        type: 'text'
+      },
+      {
+        url: (u: string) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+        type: 'json'
+      },
+      {
+        url: (u: string) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+        type: 'text'
+      }
+    ];
+
+    try {
+      for (const proxy of proxies) {
+        try {
+          const response = await fetch(proxy.url(trimmedUrl));
+          if (response.ok) {
+            if (proxy.type === 'json') {
+              const data = await response.json();
+              html = data.contents;
+            } else {
+              html = await response.text();
+            }
+            if (html && (html.includes('<title>') || html.includes('og:title'))) break;
+          }
+        } catch (e) {
+          console.warn("Proxy failed for HTML fetch:", e);
+        }
+      }
+
+      if (!html) {
+        throw new Error("Failed to fetch page content from all proxies");
+      }
+
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+
+      // Extract Title
+      const ogTitle = doc.querySelector('meta[property="og:title"]')?.getAttribute('content') ||
+                      doc.querySelector('meta[name="og:title"]')?.getAttribute('content');
+      const metaTitle = doc.querySelector('title')?.textContent;
+      const h1Title = doc.querySelector('h1')?.textContent;
+      const extractedTitle = ogTitle || metaTitle || h1Title || '';
+
+      // Extract Image
+      const ogImage = doc.querySelector('meta[property="og:image"]')?.getAttribute('content') ||
+                      doc.querySelector('meta[name="og:image"]')?.getAttribute('content');
+      const twitterImage = doc.querySelector('meta[name="twitter:image"]')?.getAttribute('content');
+      const extractedImage = ogImage || twitterImage || '';
+
+      if (extractedTitle) setTitle(extractedTitle);
+      if (extractedImage) setImageUrl(extractedImage);
+
+      if (extractedTitle || extractedImage) {
+        toast.success("Data fetched successfully!");
+      } else {
+        toast.warn("Could not find title or image on this page.");
+      }
+    } catch (error) {
+      console.error("Fetch error:", error);
+      toast.error("Failed to fetch post data. The site might be protected or the URL is invalid.");
+    } finally {
+      setIsFetching(false);
+    }
+  };
 
   const handlePaste = async (setter: (val: string) => void) => {
     try {
@@ -66,7 +156,7 @@ const SJ = () => {
 
   const fetchImageWithProxy = async (url: string): Promise<string> => {
     const proxies = [
-      (u: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+      (u: string) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
       (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
       (u: string) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
     ];
@@ -298,6 +388,46 @@ const SJ = () => {
         <div className="grid md:grid-cols-2 gap-8">
           <div className="space-y-6 terminal-window p-6">
             <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="postUrl">Post URL (www.bangladeshguardian.com)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="postUrl"
+                    placeholder="https://www.bangladeshguardian.com/..."
+                    value={postUrl}
+                    onChange={(e) => setPostUrl(e.target.value)}
+                    className="bg-surface-2 border-border"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handlePaste(setPostUrl)}
+                    className="shrink-0"
+                    title="Paste from clipboard"
+                  >
+                    <ClipboardPaste className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={fetchPostData}
+                    disabled={isFetching || !postUrl}
+                    className="shrink-0"
+                  >
+                    {isFetching ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Fetch"
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="relative flex items-center py-2">
+                <div className="flex-grow border-t border-border/50"></div>
+                <span className="flex-shrink mx-4 text-xs text-muted-foreground uppercase tracking-widest">OR MANUAL</span>
+                <div className="flex-grow border-t border-border/50"></div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="title">Title Text</Label>
                 <div className="flex gap-2">
