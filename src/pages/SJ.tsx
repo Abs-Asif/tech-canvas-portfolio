@@ -13,7 +13,7 @@ const SJ = () => {
   const [dateXOffset, setDateXOffset] = useState(-40);
   const [dateYOffset, setDateYOffset] = useState(-30);
   const [dateFontSize, setDateFontSize] = useState(20);
-  const [titleLetterSpacing, setTitleLetterSpacing] = useState(-1.2);
+  const [titleLetterSpacing, setTitleLetterSpacing] = useState(-2.4);
   const [showSettings, setShowSettings] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
