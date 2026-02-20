@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Download, RefreshCw, Image as ImageIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Settings2, X } from "lucide-react";
+import { Download, RefreshCw, Image as ImageIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Settings2, X, ClipboardPaste } from "lucide-react";
 import { toast } from "sonner";
 
 const SJ = () => {
@@ -17,6 +18,19 @@ const SJ = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [generatedTitle, setGeneratedTitle] = useState('');
+
+  const handlePaste = async (setter: (val: string) => void) => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        setter(text);
+        toast.success("Pasted from clipboard");
+      }
+    } catch (err) {
+      console.error("Paste error:", err);
+      toast.error("Failed to paste. Please allow clipboard access.");
+    }
+  };
 
   const CANVAS_WIDTH = 1080;
   const CANVAS_HEIGHT = 1080;
@@ -210,6 +224,9 @@ const SJ = () => {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
+      // Decrease letter spacing by a very little amount
+      ctx.letterSpacing = "-0.4px";
+
       const lines = splitTitle(title);
       const maxW = 980; // Allow some margin
 
@@ -242,6 +259,9 @@ const SJ = () => {
       } else {
         ctx.fillText(lines[0], TITLE_X, TITLE_Y);
       }
+
+      // Reset letter spacing
+      ctx.letterSpacing = "0px";
 
       setPreviewUrl(canvas.toDataURL('image/png'));
       setGeneratedTitle(title);
@@ -282,26 +302,45 @@ const SJ = () => {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="title">Title Text</Label>
-                <Input
-                  id="title"
-                  placeholder="Enter photocard title..."
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="bg-surface-2 border-border"
-                />
+                <div className="flex gap-2">
+                  <Textarea
+                    id="title"
+                    placeholder="Enter photocard title..."
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="bg-surface-2 border-border min-h-[80px]"
+                    rows={2}
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handlePaste(setTitle)}
+                    className="shrink-0"
+                    title="Paste from clipboard"
+                  >
+                    <ClipboardPaste className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="imageUrl">Image URL</Label>
                 <div className="flex gap-2">
-                  <Input
+                  <Textarea
                     id="imageUrl"
                     placeholder="https://example.com/image.jpg"
                     value={imageUrl}
                     onChange={(e) => setImageUrl(e.target.value)}
-                    className="bg-surface-2 border-border"
+                    className="bg-surface-2 border-border min-h-[80px]"
+                    rows={2}
                   />
-                  <Button variant="outline" size="icon" onClick={() => setImageUrl('')}>
-                    <RefreshCw className="h-4 w-4" />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handlePaste(setImageUrl)}
+                    className="shrink-0"
+                    title="Paste from clipboard"
+                  >
+                    <ClipboardPaste className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
