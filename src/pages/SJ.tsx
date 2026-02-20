@@ -8,6 +8,7 @@ import { toast } from "sonner";
 const SJ = () => {
   const [title, setTitle] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [fontSize, setFontSize] = useState(70);
   const [isGenerating, setIsGenerating] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -16,21 +17,21 @@ const SJ = () => {
   const CANVAS_WIDTH = 1080;
   const CANVAS_HEIGHT = 1080;
 
-  // Box coordinates (approx based on template)
+  // Box coordinates (updated per request)
   const BOX = {
-    x: 28,
+    x: 30,
     y: 32,
-    w: 1024,
-    h: 535
+    w: 1020,
+    h: 574
   };
 
-  const GRAY_BAR_Y = 575;
+  const GRAY_BAR_Y = 660;
   const GRAY_BAR_H = 85;
   const DATE_X = 88;
-  const DATE_Y = GRAY_BAR_Y + GRAY_BAR_H / 2;
+  const DATE_Y = GRAY_BAR_Y + (GRAY_BAR_H / 2);
 
   const TITLE_X = CANVAS_WIDTH / 2;
-  const TITLE_Y = 850; // Below gray bar
+  const TITLE_Y = 860; // Moved down as requested
 
   const formatDate = (date: Date) => {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -44,17 +45,56 @@ const SJ = () => {
     return `${dayName} | ${day} ${monthName} ${year}`;
   };
 
+  const fetchImageWithProxy = async (url: string): Promise<string> => {
+    const proxies = [
+      (u: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+      (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+      (u: string) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+    ];
+
+    const isRestricted = url.includes('bangladeshguardian.com') || url.includes('backoffice.bangladeshguardian.com');
+
+    if (!isRestricted) {
+      try {
+        const response = await fetch(url, { mode: 'cors' });
+        if (response.ok) {
+          const blob = await response.blob();
+          return URL.createObjectURL(blob);
+        }
+      } catch (e) {
+        console.warn("Direct fetch failed, trying proxies...", e);
+      }
+    }
+
+    for (const proxy of proxies) {
+      try {
+        const proxiedUrl = proxy(url);
+        const response = await fetch(proxiedUrl);
+        if (response.ok) {
+          const blob = await response.blob();
+          return URL.createObjectURL(blob);
+        }
+      } catch (e) {
+        console.warn(`Proxy failed:`, e);
+      }
+    }
+
+    throw new Error("Failed to load image. Make sure your url is valid and allows cors.");
+  };
+
   const splitTitle = (text: string) => {
-    if (!text.includes(' ')) return [text, ''];
-
     const words = text.split(' ');
-    let mid = Math.floor(text.length / 2);
+    if (words.length < 2) return [text, ''];
 
+    let mid = Math.floor(text.length / 2);
     let bestSplit = 0;
     let minDiff = Infinity;
 
     let currentPos = 0;
-    for (let i = 0; i < words.length - 1; i++) {
+    // For 3+ words, we must have at least 2 words on second line
+    const maxSplitIndex = words.length >= 3 ? words.length - 3 : words.length - 2;
+
+    for (let i = 0; i <= maxSplitIndex; i++) {
       currentPos += words[i].length;
       let diff = Math.abs(currentPos - mid);
       if (diff <= minDiff) {
@@ -83,9 +123,13 @@ const SJ = () => {
     setIsGenerating(true);
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
 
+    // Clear canvas before drawing
+    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    let userImgBlobUrl = '';
     try {
       // 1. Draw Template
       const template = new Image();
@@ -97,28 +141,31 @@ const SJ = () => {
       });
       ctx.drawImage(template, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-      // 2. Draw User Image
+      // 2. Ensure fonts are loaded
+      await Promise.all([
+        document.fonts.load(`bold ${fontSize}px "Cambria"`),
+        document.fonts.load('26px "Cambria"')
+      ]).catch(e => console.warn('Font loading failed:', e));
+
+      // 3. Draw User Image
+      userImgBlobUrl = await fetchImageWithProxy(imageUrl);
       const userImg = new Image();
-      userImg.crossOrigin = "anonymous";
-      userImg.src = imageUrl;
+      userImg.src = userImgBlobUrl;
       await new Promise((resolve, reject) => {
         userImg.onload = resolve;
         userImg.onerror = reject;
       });
 
-      // Scale to fit height
-      const scale = BOX.h / userImg.height;
-      const drawH = BOX.h;
+      // Scale to fill BOX (cover)
+      const scale = Math.max(BOX.w / userImg.width, BOX.h / userImg.height);
       const drawW = userImg.width * scale;
+      const drawH = userImg.height * scale;
       const drawX = BOX.x + (BOX.w - drawW) / 2;
-      const drawY = BOX.y;
+      const drawY = BOX.y + (BOX.h - drawH) / 2;
 
-      // Rounded corners logic
-      const isFullWidth = drawW >= BOX.w - 10; // Allowing small margin
-
-      ctx.save();
-      if (isFullWidth) {
-        const radius = 35;
+      // Rounded corners path
+      const radius = 35;
+      const defineBoxPath = () => {
         ctx.beginPath();
         ctx.moveTo(BOX.x + radius, BOX.y);
         ctx.lineTo(BOX.x + BOX.w - radius, BOX.y);
@@ -130,28 +177,64 @@ const SJ = () => {
         ctx.lineTo(BOX.x, BOX.y + radius);
         ctx.quadraticCurveTo(BOX.x, BOX.y, BOX.x + radius, BOX.y);
         ctx.closePath();
-        ctx.clip();
-      }
+      };
 
+      ctx.save();
+      defineBoxPath();
+      ctx.clip();
       ctx.drawImage(userImg, drawX, drawY, drawW, drawH);
       ctx.restore();
 
-      // 3. Draw Date
-      ctx.font = '24px "Cambria"';
+      // Draw red outline manually as requested (since template outline might be covered)
+      ctx.save();
+      defineBoxPath();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#FF0000';
+      ctx.stroke();
+      ctx.restore();
+
+      // 4. Draw Date (Double size)
+      ctx.font = '26px "Cambria"';
       ctx.fillStyle = 'white';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
-      ctx.fillText(formatDate(new Date()), DATE_X, DATE_Y);
+      ctx.fillText(formatDate(new Date()).toUpperCase(), DATE_X, DATE_Y);
 
-      // 4. Draw Title
-      ctx.font = 'bold 42px "Cambria"';
+      // 5. Draw Title with Auto-scaling
+      let currentFontSize = fontSize;
       ctx.fillStyle = 'white';
       ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
 
       const lines = splitTitle(title);
+      const maxW = 980; // Allow some margin
+
+      const checkAndScale = () => {
+        ctx.font = `bold ${currentFontSize}px "Cambria"`;
+        if (lines[1]) {
+          const w1 = ctx.measureText(lines[0]).width;
+          const w2 = ctx.measureText(lines[1]).width;
+          const maxLineW = Math.max(w1, w2);
+          if (maxLineW > maxW) {
+            currentFontSize *= (maxW / maxLineW);
+            ctx.font = `bold ${currentFontSize}px "Cambria"`;
+          }
+        } else {
+          const w = ctx.measureText(lines[0]).width;
+          if (w > maxW) {
+            currentFontSize *= (maxW / w);
+            ctx.font = `bold ${currentFontSize}px "Cambria"`;
+          }
+        }
+      };
+
+      checkAndScale();
+
       if (lines[1]) {
-        ctx.fillText(lines[0], TITLE_X, TITLE_Y - 25);
-        ctx.fillText(lines[1], TITLE_X, TITLE_Y + 25);
+        // Use a slightly larger multiplier for line spacing to avoid overlap at large sizes
+        const spacing = currentFontSize * 0.6;
+        ctx.fillText(lines[0], TITLE_X, TITLE_Y - spacing);
+        ctx.fillText(lines[1], TITLE_X, TITLE_Y + spacing);
       } else {
         ctx.fillText(lines[0], TITLE_X, TITLE_Y);
       }
@@ -163,6 +246,9 @@ const SJ = () => {
       console.error(error);
       toast.error("Failed to load image. Make sure the URL is valid and allows CORS.");
     } finally {
+      if (userImgBlobUrl && userImgBlobUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(userImgBlobUrl);
+      }
       setIsGenerating(false);
     }
   };
@@ -197,6 +283,18 @@ const SJ = () => {
                   placeholder="Enter photocard title..."
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
+                  className="bg-surface-2 border-border"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="fontSize">Font Size ({fontSize}px)</Label>
+                <Input
+                  id="fontSize"
+                  type="number"
+                  min="20"
+                  max="150"
+                  value={fontSize}
+                  onChange={(e) => setFontSize(parseInt(e.target.value) || 70)}
                   className="bg-surface-2 border-border"
                 />
               </div>
