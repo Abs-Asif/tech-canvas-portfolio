@@ -24,7 +24,7 @@ const SJ = () => {
     h: 535
   };
 
-  const GRAY_BAR_Y = 575;
+  const GRAY_BAR_Y = 660;
   const GRAY_BAR_H = 85;
   const DATE_X = 88;
   const DATE_Y = GRAY_BAR_Y + GRAY_BAR_H / 2;
@@ -81,16 +81,18 @@ const SJ = () => {
   };
 
   const splitTitle = (text: string) => {
-    if (!text.includes(' ')) return [text, ''];
-
     const words = text.split(' ');
-    let mid = Math.floor(text.length / 2);
+    if (words.length < 2) return [text, ''];
 
+    let mid = Math.floor(text.length / 2);
     let bestSplit = 0;
     let minDiff = Infinity;
 
     let currentPos = 0;
-    for (let i = 0; i < words.length - 1; i++) {
+    // For 3+ words, we must have at least 2 words on second line
+    const maxSplitIndex = words.length >= 3 ? words.length - 3 : words.length - 2;
+
+    for (let i = 0; i <= maxSplitIndex; i++) {
       currentPos += words[i].length;
       let diff = Math.abs(currentPos - mid);
       if (diff <= minDiff) {
@@ -143,45 +145,41 @@ const SJ = () => {
         userImg.onerror = reject;
       });
 
-      // Scale to fit height
-      const scale = BOX.h / userImg.height;
-      const drawH = BOX.h;
+      // Scale to fill BOX (cover)
+      const scale = Math.max(BOX.w / userImg.width, BOX.h / userImg.height);
       const drawW = userImg.width * scale;
+      const drawH = userImg.height * scale;
       const drawX = BOX.x + (BOX.w - drawW) / 2;
-      const drawY = BOX.y;
+      const drawY = BOX.y + (BOX.h - drawH) / 2;
 
-      // Rounded corners logic
-      const isFullWidth = drawW >= BOX.w - 10; // Allowing small margin
-
+      // Always apply rounded corners clipping to the BOX area
       ctx.save();
-      if (isFullWidth) {
-        const radius = 35;
-        ctx.beginPath();
-        ctx.moveTo(BOX.x + radius, BOX.y);
-        ctx.lineTo(BOX.x + BOX.w - radius, BOX.y);
-        ctx.quadraticCurveTo(BOX.x + BOX.w, BOX.y, BOX.x + BOX.w, BOX.y + radius);
-        ctx.lineTo(BOX.x + BOX.w, BOX.y + BOX.h - radius);
-        ctx.quadraticCurveTo(BOX.x + BOX.w, BOX.y + BOX.h, BOX.x + BOX.w - radius, BOX.y + BOX.h);
-        ctx.lineTo(BOX.x + radius, BOX.y + BOX.h);
-        ctx.quadraticCurveTo(BOX.x, BOX.y + BOX.h, BOX.x, BOX.y + BOX.h - radius);
-        ctx.lineTo(BOX.x, BOX.y + radius);
-        ctx.quadraticCurveTo(BOX.x, BOX.y, BOX.x + radius, BOX.y);
-        ctx.closePath();
-        ctx.clip();
-      }
+      const radius = 35;
+      ctx.beginPath();
+      ctx.moveTo(BOX.x + radius, BOX.y);
+      ctx.lineTo(BOX.x + BOX.w - radius, BOX.y);
+      ctx.quadraticCurveTo(BOX.x + BOX.w, BOX.y, BOX.x + BOX.w, BOX.y + radius);
+      ctx.lineTo(BOX.x + BOX.w, BOX.y + BOX.h - radius);
+      ctx.quadraticCurveTo(BOX.x + BOX.w, BOX.y + BOX.h, BOX.x + BOX.w - radius, BOX.y + BOX.h);
+      ctx.lineTo(BOX.x + radius, BOX.y + BOX.h);
+      ctx.quadraticCurveTo(BOX.x, BOX.y + BOX.h, BOX.x, BOX.y + BOX.h - radius);
+      ctx.lineTo(BOX.x, BOX.y + radius);
+      ctx.quadraticCurveTo(BOX.x, BOX.y, BOX.x + radius, BOX.y);
+      ctx.closePath();
+      ctx.clip();
 
       ctx.drawImage(userImg, drawX, drawY, drawW, drawH);
       ctx.restore();
 
       // 3. Draw Date
-      ctx.font = '24px "Cambria"';
+      ctx.font = '13px "Cambria"';
       ctx.fillStyle = 'white';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
       ctx.fillText(formatDate(new Date()), DATE_X, DATE_Y);
 
       // 4. Draw Title
-      ctx.font = 'bold 42px "Cambria"';
+      ctx.font = 'bold 40px "Cambria"';
       ctx.fillStyle = 'white';
       ctx.textAlign = 'center';
 
