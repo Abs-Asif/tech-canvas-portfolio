@@ -8,7 +8,7 @@ import { toast } from "sonner";
 const SJ = () => {
   const [title, setTitle] = useState('');
   const [imageUrl, setImageUrl] = useState('');
-  const [fontSize, setFontSize] = useState(80);
+  const [fontSize, setFontSize] = useState(70);
   const [isGenerating, setIsGenerating] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -17,21 +17,21 @@ const SJ = () => {
   const CANVAS_WIDTH = 1080;
   const CANVAS_HEIGHT = 1080;
 
-  // Box coordinates (approx based on template)
+  // Box coordinates (updated per request)
   const BOX = {
-    x: 28,
+    x: 30,
     y: 32,
-    w: 1024,
-    h: 535
+    w: 1020,
+    h: 574
   };
 
   const GRAY_BAR_Y = 660;
   const GRAY_BAR_H = 85;
   const DATE_X = 88;
-  const DATE_Y = GRAY_BAR_Y + GRAY_BAR_H / 2;
+  const DATE_Y = GRAY_BAR_Y + (GRAY_BAR_H / 2);
 
   const TITLE_X = CANVAS_WIDTH / 2;
-  const TITLE_Y = 830; // Adjusted for larger font
+  const TITLE_Y = 860; // Moved down as requested
 
   const formatDate = (date: Date) => {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -144,8 +144,7 @@ const SJ = () => {
       // 2. Ensure fonts are loaded
       await Promise.all([
         document.fonts.load(`bold ${fontSize}px "Cambria"`),
-        document.fonts.load('13px "Cambria"'),
-        document.fonts.load('bold 24px "Cambria"')
+        document.fonts.load('26px "Cambria"')
       ]).catch(e => console.warn('Font loading failed:', e));
 
       // 3. Draw User Image
@@ -194,8 +193,8 @@ const SJ = () => {
       ctx.stroke();
       ctx.restore();
 
-      // 4. Draw Date
-      ctx.font = '13px "Cambria"';
+      // 4. Draw Date (Double size)
+      ctx.font = '26px "Cambria"';
       ctx.fillStyle = 'white';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
@@ -295,7 +294,7 @@ const SJ = () => {
                   min="20"
                   max="150"
                   value={fontSize}
-                  onChange={(e) => setFontSize(parseInt(e.target.value) || 80)}
+                  onChange={(e) => setFontSize(parseInt(e.target.value) || 70)}
                   className="bg-surface-2 border-border"
                 />
               </div>
