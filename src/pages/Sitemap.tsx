@@ -80,6 +80,16 @@ const pages = [
     path: "/EC",
     title: "Heera Store",
     description: "Premium mobile e-commerce experience. A professional clothing store in Bangla featuring product categories, dynamic search, shopping cart, and order tracking."
+  },
+  {
+    path: "/SJ",
+    title: "SJ Photocard",
+    description: "Professional photocard generator for Bangladesh Guardian articles."
+  },
+  {
+    path: "/BanglaGuardian",
+    title: "Bangla Guardian",
+    description: "Branded photocard generator replica for Bangladesh Guardian."
   }
 ];
 
