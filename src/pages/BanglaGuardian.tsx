@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Download, RefreshCw, Image as ImageIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Settings2, X, ClipboardPaste, History, Clock, AlertCircle, ExternalLink, Eye, List, Zap } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Download, RefreshCw, Image as ImageIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Settings2, X, ClipboardPaste, History, Clock, AlertCircle, ExternalLink, Eye, List, Zap, Play, Square } from "lucide-react";
 import { toast } from "sonner";
 
 interface AutoRecord {
@@ -14,6 +15,51 @@ interface AutoRecord {
   previewUrl: string;
   timestamp: string;
 }
+
+interface LogEntry {
+  message: string;
+  timestamp: number;
+  type?: 'info' | 'success' | 'error' | 'process';
+}
+
+const DB_NAME = 'BanglaGuardianDB';
+const STORE_NAME = 'photocards';
+
+const initDB = (): Promise<IDBDatabase> => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+};
+
+const saveRecordDB = async (record: AutoRecord) => {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    store.put(record);
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => reject(tx.error);
+  });
+};
+
+const getAllRecordsDB = async (): Promise<AutoRecord[]> => {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+};
 
 const BanglaGuardian = () => {
   const [postUrl, setPostUrl] = useState('');
@@ -34,8 +80,9 @@ const BanglaGuardian = () => {
   // Automation State
   const [autoModeActive, setAutoModeActive] = useState(false);
   const [isAutoChecking, setIsAutoChecking] = useState(false);
+  const isAutoCheckingRef = useRef(false);
   const [autoRecords, setAutoRecords] = useState<AutoRecord[]>([]);
-  const [autoLogs, setAutoLogs] = useState<string[]>([]);
+  const [autoLogs, setAutoLogs] = useState<LogEntry[]>([]);
   const [processedUrls, setProcessedUrls] = useState<Set<string>>(new Set());
   const processedUrlsRef = useRef<Set<string>>(new Set());
 
@@ -44,17 +91,30 @@ const BanglaGuardian = () => {
     processedUrlsRef.current = processedUrls;
   }, [processedUrls]);
 
-  // Load cache on mount
+  // Load cache and records on mount
   useEffect(() => {
-    const saved = localStorage.getItem('bg_processed_urls');
-    if (saved) {
+    const savedUrls = localStorage.getItem('bg_processed_urls');
+    if (savedUrls) {
       try {
-        const urls = JSON.parse(saved);
+        const urls = JSON.parse(savedUrls);
         setProcessedUrls(new Set(urls));
       } catch (e) {
         console.error("Failed to load processed URLs", e);
       }
     }
+
+    const savedAutoActive = localStorage.getItem('bg_auto_active');
+    if (savedAutoActive === 'true') {
+      setAutoModeActive(true);
+    }
+
+    getAllRecordsDB().then(records => {
+      // Sort by timestamp descending
+      const sorted = records.sort((a, b) => {
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+      });
+      setAutoRecords(sorted);
+    });
   }, []);
 
   // Save cache when it changes
@@ -62,9 +122,32 @@ const BanglaGuardian = () => {
     localStorage.setItem('bg_processed_urls', JSON.stringify(Array.from(processedUrls)));
   }, [processedUrls]);
 
-  const addLog = (msg: string) => {
-    const time = new Date().toLocaleTimeString();
-    setAutoLogs(prev => [`[${time}] ${msg}`, ...prev].slice(0, 50));
+  // Save auto active state
+  useEffect(() => {
+    localStorage.setItem('bg_auto_active', String(autoModeActive));
+  }, [autoModeActive]);
+
+  // Log cleaner: remove logs older than 1 hour
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const oneHourAgo = Date.now() - 3600000;
+      setAutoLogs(prev => prev.filter(log => log.timestamp > oneHourAgo));
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const addLog = (message: string, type: LogEntry['type'] = 'info') => {
+    const newLog: LogEntry = {
+      message,
+      timestamp: Date.now(),
+      type
+    };
+    setAutoLogs(prev => [newLog, ...prev]);
+  };
+
+  const playAlert = () => {
+    const audio = new Audio('/Alert.mp3');
+    audio.play().catch(e => console.warn("Audio play failed:", e));
   };
 
   const getMetadata = async (targetUrl: string) => {
@@ -430,14 +513,21 @@ const BanglaGuardian = () => {
       const dataUrl = await generatePhotoCardInternal(title, imageUrl);
       setPreviewUrl(dataUrl);
       setGeneratedTitle(title);
-      toast.success("Photocard generated!");
 
-      // Enable automation after first successful manual generation
-      if (!autoModeActive) {
-        setAutoModeActive(true);
-        addLog("Automation activated after first generation.");
-        toast.info("Background automation enabled.");
-      }
+      const newRecord: AutoRecord = {
+        id: Math.random().toString(36).substr(2, 9),
+        url: postUrl || 'manual',
+        title: title,
+        imageUrl: imageUrl,
+        previewUrl: dataUrl,
+        timestamp: new Date().toISOString()
+      };
+
+      await saveRecordDB(newRecord);
+      setAutoRecords(prev => [newRecord, ...prev]);
+
+      toast.success("Photocard generated!");
+      playAlert();
     } catch (error) {
       console.error(error);
       toast.error("Failed to generate photocard.");
@@ -447,14 +537,59 @@ const BanglaGuardian = () => {
   };
 
   const scrapeLatestLinks = async () => {
-    const latestUrl = "https://www.bangladeshguardian.com/latest";
-    let html = '';
+    // We'll try the daily sitemaps (today and yesterday) first since the site is heavily React-rendered
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const dates = [
+      today.toISOString().split('T')[0],
+      yesterday.toISOString().split('T')[0]
+    ];
+
     const proxies = [
-      (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
       (u: string) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
+      (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
       (u: string) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
     ];
 
+    let allLocs: string[] = [];
+
+    for (const dateStr of dates) {
+      const sitemapUrl = `https://www.bangladeshguardian.com/bangla-sitemap/sitemap-daily-${dateStr}.xml`;
+      let xml = '';
+
+      for (const proxy of proxies) {
+        try {
+          const response = await fetch(proxy(sitemapUrl));
+          if (response.ok) {
+            xml = await response.text();
+            if (xml && xml.includes('<loc>')) break;
+          }
+        } catch (e) {
+          console.warn("Proxy failed for sitemap fetch:", e);
+        }
+      }
+
+      if (xml) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(xml, 'application/xml');
+        // Use specific selector to avoid matching image:loc
+        const locs = Array.from(doc.querySelectorAll('url > loc')).map(l => l.textContent).filter(Boolean) as string[];
+        // Add newest from this sitemap to the top
+        allLocs = [...allLocs, ...locs.reverse()];
+      }
+
+      if (allLocs.length >= 12) break;
+    }
+
+    if (allLocs.length > 0) {
+      return allLocs.slice(0, 12);
+    }
+
+    // Fallback to scraping the /latest page if sitemap fails
+    const latestUrl = "https://www.bangladeshguardian.com/latest";
+    let html = '';
     for (const proxy of proxies) {
       try {
         const response = await fetch(proxy(latestUrl));
@@ -463,7 +598,7 @@ const BanglaGuardian = () => {
           if (html && html.includes('href=')) break;
         }
       } catch (e) {
-        console.warn("Proxy failed for link scraping:", e);
+        console.warn("Proxy failed for fallback scraping:", e);
       }
     }
 
@@ -472,23 +607,29 @@ const BanglaGuardian = () => {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
     const links = Array.from(doc.querySelectorAll('a'))
-      .map(a => a.href)
-      .filter(href =>
-        href.includes('bangladeshguardian.com/') &&
-        !href.endsWith('/latest') &&
-        !href.endsWith('/about') &&
-        !href.endsWith('/contact') &&
-        !href.includes('/category/') &&
-        href.length > 40 // Typical article link length
-      );
+      .map(a => a.getAttribute('href'))
+      .filter(Boolean)
+      .map(href => (href!.startsWith('/') ? `https://www.bangladeshguardian.com${href}` : href!))
+      .filter(href => {
+        try {
+          const url = new URL(href);
+          return url.hostname.includes('bangladeshguardian.com') &&
+                 url.pathname.length > 10 &&
+                 !url.pathname.includes('/category/') &&
+                 !['/latest', '/about', '/contact', '/privacy-policy'].includes(url.pathname);
+        } catch {
+          return false;
+        }
+      });
 
-    return Array.from(new Set(links));
+    return Array.from(new Set(links)).slice(0, 12);
   };
 
   const checkAndGenerate = async () => {
-    if (isAutoChecking) return;
+    if (isAutoCheckingRef.current) return;
+    isAutoCheckingRef.current = true;
     setIsAutoChecking(true);
-    addLog("Checking for new posts...");
+    addLog("Checking for new posts...", "process");
 
     try {
       const links = await scrapeLatestLinks();
@@ -512,12 +653,14 @@ const BanglaGuardian = () => {
               title: metadata.title,
               imageUrl: metadata.image,
               previewUrl: dataUrl,
-              timestamp: new Date().toLocaleTimeString()
+              timestamp: new Date().toISOString()
             };
 
+            await saveRecordDB(newRecord);
             setAutoRecords(prev => [newRecord, ...prev]);
             setProcessedUrls(prev => new Set(prev).add(link));
             toast.success(`Auto-generated: ${metadata.title}`);
+            playAlert();
           } else {
             addLog(`Failed to get metadata for: ${link}`);
             // Still mark as processed to avoid repeated failures
@@ -529,23 +672,45 @@ const BanglaGuardian = () => {
       }
     } catch (e) {
       console.error("Automation error:", e);
-      addLog("Automation error occurred.");
+      addLog("Automation error occurred.", "error");
     } finally {
       setIsAutoChecking(false);
+      isAutoCheckingRef.current = false;
     }
   };
 
   useEffect(() => {
     if (!autoModeActive) return;
 
-    // Initial check
-    checkAndGenerate();
+    // Use a Web Worker to avoid background throttling for the 60s heartbeat
+    const workerCode = `
+      let interval;
+      self.onmessage = (e) => {
+        if (e.data === 'start') {
+          self.postMessage('tick');
+          interval = setInterval(() => self.postMessage('tick'), 60000);
+        } else if (e.data === 'stop') {
+          clearInterval(interval);
+        }
+      };
+    `;
+    const blob = new Blob([workerCode], { type: 'application/javascript' });
+    const url = URL.createObjectURL(blob);
+    const worker = new Worker(url);
 
-    const interval = setInterval(() => {
-      checkAndGenerate();
-    }, 60000);
+    worker.onmessage = (e) => {
+      if (e.data === 'tick') {
+        checkAndGenerate();
+      }
+    };
 
-    return () => clearInterval(interval);
+    worker.postMessage('start');
+
+    return () => {
+      worker.postMessage('stop');
+      worker.terminate();
+      URL.revokeObjectURL(url); // Cleanup
+    };
   }, [autoModeActive]);
 
   const downloadImage = () => {
@@ -628,7 +793,7 @@ const BanglaGuardian = () => {
                     onClick={() => handlePaste(setTitle)}
                     className="shrink-0"
                     title="Paste from clipboard"
-                  >
+                    >
                     <ClipboardPaste className="h-4 w-4" />
                   </Button>
                 </div>
@@ -723,11 +888,32 @@ const BanglaGuardian = () => {
                   AUTOMATION STATUS
                 </h3>
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${autoModeActive ? 'bg-green-500 animate-pulse' : 'bg-zinc-600'}`} />
+                  <div className={cn("w-2 h-2 rounded-full", autoModeActive ? 'bg-green-500 animate-pulse' : 'bg-zinc-600')} />
                   <span className="text-[10px] uppercase tracking-wider font-bold">
                     {autoModeActive ? 'Active' : 'Idle'}
                   </span>
                 </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant={autoModeActive ? "secondary" : "default"}
+                  size="sm"
+                  className="flex-1 text-[10px] h-8"
+                  onClick={() => setAutoModeActive(true)}
+                  disabled={autoModeActive}
+                >
+                  <Play className="h-3 w-3 mr-1" /> START
+                </Button>
+                <Button
+                  variant={!autoModeActive ? "secondary" : "destructive"}
+                  size="sm"
+                  className="flex-1 text-[10px] h-8"
+                  onClick={() => setAutoModeActive(false)}
+                  disabled={!autoModeActive}
+                >
+                  <Square className="h-3 w-3 mr-1" /> STOP
+                </Button>
               </div>
 
               <div className="space-y-3">
@@ -741,8 +927,12 @@ const BanglaGuardian = () => {
                     <div className="text-zinc-600 italic">Waiting for activity...</div>
                   ) : (
                     autoLogs.map((log, i) => (
-                      <div key={i} className={`${log.includes('Generating') ? 'text-primary' : log.includes('Found') ? 'text-green-400' : 'text-zinc-400'}`}>
-                        {log}
+                      <div key={i} className={cn(
+                        log.type === 'success' ? 'text-green-400' :
+                        log.type === 'error' ? 'text-red-400' :
+                        log.type === 'process' ? 'text-primary' : 'text-zinc-400'
+                      )}>
+                        [{new Date(log.timestamp).toLocaleTimeString()}] {log.message}
                       </div>
                     ))
                   )}
@@ -769,7 +959,7 @@ const BanglaGuardian = () => {
                 <div key={record.id} className="terminal-window overflow-hidden flex flex-col group animate-fade-in-up">
                   <div className="terminal-header flex items-center justify-between py-1 px-3">
                     <span className="text-[8px] font-mono opacity-50 truncate max-w-[150px]">{record.title}</span>
-                    <span className="text-[8px] font-mono opacity-50">{record.timestamp}</span>
+                    <span className="text-[8px] font-mono opacity-50">{new Date(record.timestamp).toLocaleString()}</span>
                   </div>
                   <div className="aspect-square relative bg-surface-1 border-b border-border overflow-hidden">
                     <img src={record.previewUrl} alt={record.title} className="w-full h-full object-contain" />
