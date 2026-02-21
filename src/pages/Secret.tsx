@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { censorText } from "@/lib/censor";
 import { Download, RefreshCw, Image as ImageIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Settings2, X, ClipboardPaste, History, Clock, AlertCircle, List, Zap, Play, Square, Trash2, Lock, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -33,38 +34,6 @@ const DB_NAME = 'SecretBGDB';
 const STORE_NAME = 'photocards';
 
 const ENC_PW = "MDE1MjIxMDUzNzM="; // btoa("01522105373")
-
-export const censorText = (text: string) => {
-  if (!text) return text;
-  let censored = text;
-  const mappings: Record<string, string> = {
-    'Fuck': 'F*ck',
-    'Fucks': 'f*cks',
-    'Fucling': 'F*cking',
-    'Fucked': 'F*cked',
-    'Kill': 'k*ll',
-    'Killing': 'k*lling',
-    'Killer': 'k*ller',
-    'Killed': 'k*lled',
-    'Suicide': 'S*icide',
-    'Gaza': 'G*za',
-    'Murder': 'M*rder',
-    'Murdered': 'M*rdered',
-    'Murderer': 'M*rderer',
-    'Israel': 'Isr*el',
-    'Israeli': 'Isr*eli',
-    'Rape': 'r*pe',
-    'Rapist': 'R*pist',
-    'Raped': 'R*ped',
-  };
-
-  const sortedUnsafe = Object.keys(mappings).sort((a, b) => b.length - a.length);
-  sortedUnsafe.forEach((unsafe) => {
-    const regex = new RegExp(unsafe, 'gi');
-    censored = censored.replace(regex, mappings[unsafe]);
-  });
-  return censored;
-};
 
 const initDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { censorText } from '../pages/BanglaGuardian';
+import { censorText } from '../lib/censor';
 
 describe('censorText', () => {
   it('should replace Fuck with F*ck', () => {

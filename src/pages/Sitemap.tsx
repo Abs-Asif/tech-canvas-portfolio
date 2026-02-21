@@ -57,11 +57,6 @@ const pages = [
     description: "Intelligent assistant. Leverages Gemini AI models via Puter.js to provide a markdown-rich conversational interface in a terminal style."
   },
   {
-    path: "/HN",
-    title: "Nuclear Code Search",
-    description: "Manga reader. Fetches data from nHentai using 6-digit codes and displays panels through a CORS proxy for unrestricted access."
-  },
-  {
     path: "/GA",
     title: "Duck Maze Runner",
     description: "2D maze game. Uses Recursive Backtracking algorithms for procedural level generation and HTML5 Canvas for rendering."
@@ -75,21 +70,6 @@ const pages = [
     path: "/IS",
     title: "Islamic Services",
     description: "Comprehensive religious toolkit. Features prayer times, fasting schedules, zakat calculation, and Asma-ul-Husna using data from IslamicAPI."
-  },
-  {
-    path: "/EC",
-    title: "Heera Store",
-    description: "Premium mobile e-commerce experience. A professional clothing store in Bangla featuring product categories, dynamic search, shopping cart, and order tracking."
-  },
-  {
-    path: "/SJ",
-    title: "SJ Photocard",
-    description: "Professional photocard generator for Bangladesh Guardian articles."
-  },
-  {
-    path: "/BanglaGuardian",
-    title: "Bangla Guardian",
-    description: "Branded photocard generator replica for Bangladesh Guardian."
   }
 ];
 
