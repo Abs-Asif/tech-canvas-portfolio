@@ -2,74 +2,81 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import Dictionary from "./pages/Dictionary";
-import FontSimplified from "./pages/FontSimplified";
-import FontDocumentation from "./pages/FontDocumentation";
-import FontLogin from "./pages/FontLogin";
-import FontAdminDashboard from "./pages/FontAdminDashboard";
-import FontUserDashboard from "./pages/FontUserDashboard";
-import Analytics from "./pages/Analytics";
-import Automation from "./pages/Automation";
-import VideoAutomation from "./pages/VideoAutomation";
-import AiChat from "./pages/AiChat";
-import NuclearCodeSearch from "./pages/NuclearCodeSearch";
-import MazeGame from "./pages/MazeGame";
-import SearchEngine from "./pages/SearchEngine";
-import IslamicServices from "./pages/IslamicServices";
-import HeeraStore from "./pages/HeeraStore/HeeraStore";
-import SJ from "./pages/SJ";
-import BanglaGuardian from "./pages/BanglaGuardian";
-import Secret from "./pages/Secret";
-import Sitemap from "./pages/Sitemap";
-import NotFound from "./pages/NotFound";
+import { lazy, Suspense } from "react";
+import { BrowserRouter, HashRouter, Routes, Route } from "react-router-dom";
+
+const isStandalone = import.meta.env.VITE_STANDALONE_SECRET === 'true';
+
+const Index = isStandalone ? null : lazy(() => import("./pages/Index"));
+const Dictionary = isStandalone ? null : lazy(() => import("./pages/Dictionary"));
+const FontSimplified = isStandalone ? null : lazy(() => import("./pages/FontSimplified"));
+const FontDocumentation = isStandalone ? null : lazy(() => import("./pages/FontDocumentation"));
+const FontLogin = isStandalone ? null : lazy(() => import("./pages/FontLogin"));
+const FontAdminDashboard = isStandalone ? null : lazy(() => import("./pages/FontAdminDashboard"));
+const FontUserDashboard = isStandalone ? null : lazy(() => import("./pages/FontUserDashboard"));
+const Analytics = isStandalone ? null : lazy(() => import("./pages/Analytics"));
+const Automation = isStandalone ? null : lazy(() => import("./pages/Automation"));
+const VideoAutomation = isStandalone ? null : lazy(() => import("./pages/VideoAutomation"));
+const AiChat = isStandalone ? null : lazy(() => import("./pages/AiChat"));
+const NuclearCodeSearch = isStandalone ? null : lazy(() => import("./pages/NuclearCodeSearch"));
+const MazeGame = isStandalone ? null : lazy(() => import("./pages/MazeGame"));
+const SearchEngine = isStandalone ? null : lazy(() => import("./pages/SearchEngine"));
+const IslamicServices = isStandalone ? null : lazy(() => import("./pages/IslamicServices"));
+const HeeraStore = isStandalone ? null : lazy(() => import("./pages/HeeraStore/HeeraStore"));
+const SJ = isStandalone ? null : lazy(() => import("./pages/SJ"));
+const BanglaGuardian = isStandalone ? null : lazy(() => import("./pages/BanglaGuardian"));
+const Secret = lazy(() => import("./pages/Secret"));
+
+const Sitemap = isStandalone ? null : lazy(() => import("./pages/Sitemap"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
 
 const App = () => {
-  const isStandalone = import.meta.env.VITE_STANDALONE_SECRET === 'true';
+  const Router = isStandalone ? HashRouter : BrowserRouter;
 
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
-          <Routes>
-            {isStandalone ? (
-              <>
-                <Route path="/" element={<Secret />} />
-                <Route path="/secret" element={<Secret />} />
-                <Route path="*" element={<NotFound />} />
-              </>
-            ) : (
-              <>
-                <Route path="/" element={<Index />} />
-                <Route path="/D" element={<Dictionary />} />
-                <Route path="/F" element={<FontSimplified />} />
-                <Route path="/F/D" element={<FontDocumentation />} />
-                <Route path="/F/L" element={<FontLogin />} />
-                <Route path="/F/A" element={<FontAdminDashboard />} />
-                <Route path="/F/U" element={<FontUserDashboard />} />
-                <Route path="/A" element={<Analytics />} />
-                <Route path="/FP" element={<Automation />} />
-                <Route path="/FV" element={<VideoAutomation />} />
-                <Route path="/AI" element={<AiChat />} />
-                <Route path="/HN" element={<NuclearCodeSearch />} />
-                <Route path="/GA" element={<MazeGame />} />
-                <Route path="/SE" element={<SearchEngine />} />
-                <Route path="/IS" element={<IslamicServices />} />
-                <Route path="/EC/*" element={<HeeraStore />} />
-                <Route path="/SJ" element={<SJ />} />
-                <Route path="/BanglaGuardian" element={<BanglaGuardian />} />
-                <Route path="/secret" element={<Secret />} />
-                <Route path="/sitemap" element={<Sitemap />} />
-                <Route path="*" element={<NotFound />} />
-              </>
-            )}
-          </Routes>
-        </BrowserRouter>
+        <Router>
+          <Suspense fallback={<div className="min-h-screen bg-black" />}>
+            <Routes>
+              {isStandalone ? (
+                <>
+                  <Route path="/" element={<Secret />} />
+                  <Route path="/secret" element={<Secret />} />
+                  <Route path="*" element={<NotFound />} />
+                </>
+              ) : (
+                <>
+                  <Route path="/" element={Index ? <Index /> : null} />
+                  <Route path="/D" element={Dictionary ? <Dictionary /> : null} />
+                  <Route path="/F" element={FontSimplified ? <FontSimplified /> : null} />
+                  <Route path="/F/D" element={FontDocumentation ? <FontDocumentation /> : null} />
+                  <Route path="/F/L" element={FontLogin ? <FontLogin /> : null} />
+                  <Route path="/F/A" element={FontAdminDashboard ? <FontAdminDashboard /> : null} />
+                  <Route path="/F/U" element={FontUserDashboard ? <FontUserDashboard /> : null} />
+                  <Route path="/A" element={Analytics ? <Analytics /> : null} />
+                  <Route path="/FP" element={Automation ? <Automation /> : null} />
+                  <Route path="/FV" element={VideoAutomation ? <VideoAutomation /> : null} />
+                  <Route path="/AI" element={AiChat ? <AiChat /> : null} />
+                  <Route path="/HN" element={NuclearCodeSearch ? <NuclearCodeSearch /> : null} />
+                  <Route path="/GA" element={MazeGame ? <MazeGame /> : null} />
+                  <Route path="/SE" element={SearchEngine ? <SearchEngine /> : null} />
+                  <Route path="/IS" element={IslamicServices ? <IslamicServices /> : null} />
+                  <Route path="/EC/*" element={HeeraStore ? <HeeraStore /> : null} />
+                  <Route path="/SJ" element={SJ ? <SJ /> : null} />
+                  <Route path="/BanglaGuardian" element={BanglaGuardian ? <BanglaGuardian /> : null} />
+                  <Route path="/secret" element={<Secret />} />
+                  <Route path="/sitemap" element={Sitemap ? <Sitemap /> : null} />
+                  <Route path="*" element={<NotFound />} />
+                </>
+              )}
+            </Routes>
+          </Suspense>
+        </Router>
       </TooltipProvider>
     </QueryClientProvider>
   );
