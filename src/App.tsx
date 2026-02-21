@@ -21,6 +21,7 @@ import IslamicServices from "./pages/IslamicServices";
 import HeeraStore from "./pages/HeeraStore/HeeraStore";
 import SJ from "./pages/SJ";
 import BanglaGuardian from "./pages/BanglaGuardian";
+import Secret from "./pages/Secret";
 import Sitemap from "./pages/Sitemap";
 import NotFound from "./pages/NotFound";
 
@@ -51,6 +52,7 @@ const App = () => (
           <Route path="/EC/*" element={<HeeraStore />} />
           <Route path="/SJ" element={<SJ />} />
           <Route path="/BanglaGuardian" element={<BanglaGuardian />} />
+          <Route path="/secret" element={<Secret />} />
           <Route path="/sitemap" element={<Sitemap />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
