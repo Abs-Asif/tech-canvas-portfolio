@@ -18,13 +18,9 @@ const Analytics = isStandalone ? null : lazy(() => import("./pages/Analytics"));
 const Automation = isStandalone ? null : lazy(() => import("./pages/Automation"));
 const VideoAutomation = isStandalone ? null : lazy(() => import("./pages/VideoAutomation"));
 const AiChat = isStandalone ? null : lazy(() => import("./pages/AiChat"));
-const NuclearCodeSearch = isStandalone ? null : lazy(() => import("./pages/NuclearCodeSearch"));
 const MazeGame = isStandalone ? null : lazy(() => import("./pages/MazeGame"));
 const SearchEngine = isStandalone ? null : lazy(() => import("./pages/SearchEngine"));
 const IslamicServices = isStandalone ? null : lazy(() => import("./pages/IslamicServices"));
-const HeeraStore = isStandalone ? null : lazy(() => import("./pages/HeeraStore/HeeraStore"));
-const SJ = isStandalone ? null : lazy(() => import("./pages/SJ"));
-const BanglaGuardian = isStandalone ? null : lazy(() => import("./pages/BanglaGuardian"));
 const Secret = lazy(() => import("./pages/Secret"));
 
 const Sitemap = isStandalone ? null : lazy(() => import("./pages/Sitemap"));
@@ -62,13 +58,9 @@ const App = () => {
                   <Route path="/FP" element={Automation ? <Automation /> : null} />
                   <Route path="/FV" element={VideoAutomation ? <VideoAutomation /> : null} />
                   <Route path="/AI" element={AiChat ? <AiChat /> : null} />
-                  <Route path="/HN" element={NuclearCodeSearch ? <NuclearCodeSearch /> : null} />
                   <Route path="/GA" element={MazeGame ? <MazeGame /> : null} />
                   <Route path="/SE" element={SearchEngine ? <SearchEngine /> : null} />
                   <Route path="/IS" element={IslamicServices ? <IslamicServices /> : null} />
-                  <Route path="/EC/*" element={HeeraStore ? <HeeraStore /> : null} />
-                  <Route path="/SJ" element={SJ ? <SJ /> : null} />
-                  <Route path="/BanglaGuardian" element={BanglaGuardian ? <BanglaGuardian /> : null} />
                   <Route path="/secret" element={<Secret />} />
                   <Route path="/sitemap" element={Sitemap ? <Sitemap /> : null} />
                   <Route path="*" element={<NotFound />} />
