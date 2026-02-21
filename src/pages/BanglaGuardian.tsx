@@ -16,6 +16,13 @@ interface AutoRecord {
   timestamp: string;
 }
 
+interface BGArchiveItem {
+  ContentID: number;
+  Slug: string;
+  ContentHeading: string;
+  ImageBgPath: string;
+}
+
 interface LogEntry {
   message: string;
   timestamp: number;
@@ -602,75 +609,35 @@ const BanglaGuardian = () => {
   };
 
   const scrapeLatestLinks = async () => {
-    const latestUrl = "https://www.bangladeshguardian.com/latest";
-    const proxies = [
-      (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-      (u: string) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
-      (u: string) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-    ];
-
-    let html = '';
-    for (const proxy of proxies) {
-      try {
-        const response = await fetch(proxy(latestUrl));
-        if (response.ok) {
-          html = await response.text();
-          // SPA pages might have very little HTML, so we check for basic structure
-          if (html && html.includes('<html')) break;
-        }
-      } catch (e) {
-        console.warn("Proxy failed for scraping /latest:", e);
-      }
-    }
-
-    if (!html) return [];
-
-    const extractedLinks: string[] = [];
-
-    // 1. Standard A tags
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    Array.from(doc.querySelectorAll('a')).forEach(a => {
-      const href = a.getAttribute('href');
-      if (href) extractedLinks.push(href);
-    });
-
-    // 2. Aggressive Regex search for URLs in scripts/text (important for SPA)
-    // Looking for patterns like /politics/some-article or https://www.bangladeshguardian.com/national/slug
-    const urlPatterns = [
-      /https:\/\/www\.bangladeshguardian\.com\/[a-z-]+\/[a-z0-9-]+/g,
-      /"\/[a-z-]+\/[a-z0-9-]+"/g,
-      /'\/[a-z-]+\/[a-z0-9-]+'/g
-    ];
-
-    urlPatterns.forEach(pattern => {
-      const matches = html.match(pattern);
-      if (matches) {
-        matches.forEach(m => {
-          let cleaned = m.replace(/['"]/g, '');
-          extractedLinks.push(cleaned);
-        });
-      }
-    });
-
-    const finalLinks = Array.from(new Set(extractedLinks))
-      .map(href => (href.startsWith('/') ? `https://www.bangladeshguardian.com${href}` : href))
-      .filter(href => {
-        try {
-          const url = new URL(href);
-          const p = url.pathname;
-          return url.hostname.includes('bangladeshguardian.com') &&
-                 p.split('/').length >= 3 && // Requires at least /category/slug
-                 !p.includes('/category/') &&
-                 !p.includes('/static/') &&
-                 !p.includes('/media/') &&
-                 !['/latest', '/about', '/contact', '/privacy-policy', '/terms-condition'].includes(p);
-        } catch {
-          return false;
-        }
+    try {
+      const response = await fetch("https://backoffice.bangladeshguardian.com/api-en/archive", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          start_date: "",
+          end_date: "",
+          category_name: "",
+          limit: 12,
+          offset: 0
+        })
       });
 
-    return finalLinks.slice(0, 12);
+      if (!response.ok) throw new Error("API request failed");
+      const data = await response.json();
+
+      const articles = (data.archive_data || []).map((item: BGArchiveItem) => ({
+        url: `https://www.bangladeshguardian.com/${item.Slug}/${item.ContentID}`,
+        title: item.ContentHeading,
+        image: `https://backoffice.bangladeshguardian.com/media/imgAll/${item.ImageBgPath}`
+      }));
+
+      return articles;
+    } catch (e) {
+      console.error("Scraping failed:", e);
+      return [];
+    }
   };
 
   const checkAndGenerate = async () => {
@@ -680,40 +647,45 @@ const BanglaGuardian = () => {
     addLog("Checking for new posts...", "process");
 
     try {
-      const links = await scrapeLatestLinks();
-      const newLinks = links.filter(link => !processedUrlsRef.current.has(link));
+      const articles = await scrapeLatestLinks();
+      const newArticles = articles.filter(art => !processedUrlsRef.current.has(art.url));
 
-      if (newLinks.length === 0) {
+      if (newArticles.length === 0) {
         addLog("No new posts found.");
       } else {
-        addLog(`Found ${newLinks.length} new post(s). Processing...`);
+        addLog(`Found ${newArticles.length} new post(s). Processing...`);
 
-        for (const link of newLinks) {
-          addLog(`Fetching: ${link}`);
-          const metadata = await getMetadata(link);
-          if (metadata && metadata.title && metadata.image) {
-            const censoredTitle = censorText(metadata.title);
+        for (const article of newArticles) {
+          if (article.title && article.image) {
+            const censoredTitle = censorText(article.title);
             addLog(`Generating card for: ${censoredTitle}`);
-            const dataUrl = await generatePhotoCardInternal(censoredTitle, metadata.image);
+            const dataUrl = await generatePhotoCardInternal(censoredTitle, article.image);
 
             const newRecord: AutoRecord = {
               id: Math.random().toString(36).substr(2, 9),
-              url: link,
+              url: article.url,
               title: censoredTitle,
-              imageUrl: metadata.image,
+              imageUrl: article.image,
               previewUrl: dataUrl,
               timestamp: new Date().toISOString()
             };
 
             await saveRecordDB(newRecord);
             setAutoRecords(prev => [newRecord, ...prev]);
-            setProcessedUrls(prev => new Set(prev).add(link));
+            setProcessedUrls(prev => {
+              const next = new Set(prev);
+              next.add(article.url);
+              return next;
+            });
             toast.success(`Auto-generated: ${censoredTitle}`);
             playAlert();
           } else {
-            addLog(`Failed to get metadata for: ${link}`);
-            // Still mark as processed to avoid repeated failures
-            setProcessedUrls(prev => new Set(prev).add(link));
+            addLog(`Skipping: ${article.url} (Missing metadata)`);
+            setProcessedUrls(prev => {
+              const next = new Set(prev);
+              next.add(article.url);
+              return next;
+            });
           }
           // Small delay between generations to avoid browser issues
           await new Promise(r => setTimeout(r, 1000));
