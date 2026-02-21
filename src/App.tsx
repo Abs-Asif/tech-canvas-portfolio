@@ -27,39 +27,52 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/D" element={<Dictionary />} />
-          <Route path="/F" element={<FontSimplified />} />
-          <Route path="/F/D" element={<FontDocumentation />} />
-          <Route path="/F/L" element={<FontLogin />} />
-          <Route path="/F/A" element={<FontAdminDashboard />} />
-          <Route path="/F/U" element={<FontUserDashboard />} />
-          <Route path="/A" element={<Analytics />} />
-          <Route path="/FP" element={<Automation />} />
-          <Route path="/FV" element={<VideoAutomation />} />
-          <Route path="/AI" element={<AiChat />} />
-          <Route path="/HN" element={<NuclearCodeSearch />} />
-          <Route path="/GA" element={<MazeGame />} />
-          <Route path="/SE" element={<SearchEngine />} />
-          <Route path="/IS" element={<IslamicServices />} />
-          <Route path="/EC/*" element={<HeeraStore />} />
-          <Route path="/SJ" element={<SJ />} />
-          <Route path="/BanglaGuardian" element={<BanglaGuardian />} />
-          <Route path="/secret" element={<Secret />} />
-          <Route path="/sitemap" element={<Sitemap />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const isStandalone = import.meta.env.VITE_STANDALONE_SECRET === 'true';
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            {isStandalone ? (
+              <>
+                <Route path="/" element={<Secret />} />
+                <Route path="/secret" element={<Secret />} />
+                <Route path="*" element={<NotFound />} />
+              </>
+            ) : (
+              <>
+                <Route path="/" element={<Index />} />
+                <Route path="/D" element={<Dictionary />} />
+                <Route path="/F" element={<FontSimplified />} />
+                <Route path="/F/D" element={<FontDocumentation />} />
+                <Route path="/F/L" element={<FontLogin />} />
+                <Route path="/F/A" element={<FontAdminDashboard />} />
+                <Route path="/F/U" element={<FontUserDashboard />} />
+                <Route path="/A" element={<Analytics />} />
+                <Route path="/FP" element={<Automation />} />
+                <Route path="/FV" element={<VideoAutomation />} />
+                <Route path="/AI" element={<AiChat />} />
+                <Route path="/HN" element={<NuclearCodeSearch />} />
+                <Route path="/GA" element={<MazeGame />} />
+                <Route path="/SE" element={<SearchEngine />} />
+                <Route path="/IS" element={<IslamicServices />} />
+                <Route path="/EC/*" element={<HeeraStore />} />
+                <Route path="/SJ" element={<SJ />} />
+                <Route path="/BanglaGuardian" element={<BanglaGuardian />} />
+                <Route path="/secret" element={<Secret />} />
+                <Route path="/sitemap" element={<Sitemap />} />
+                <Route path="*" element={<NotFound />} />
+              </>
+            )}
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

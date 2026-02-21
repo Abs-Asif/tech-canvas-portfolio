@@ -719,21 +719,24 @@ const Secret = () => {
           <div className="space-y-6 bg-card p-5 md:p-6 rounded-2xl border shadow-sm">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="postUrl">Post URL (www.bangladeshguardian.com)</Label>
+                <Label htmlFor="postUrl">News post</Label>
                 <div className="flex gap-2">
-                  <Input
+                  <Textarea
                     id="postUrl"
                     placeholder="https://www.bangladeshguardian.com/..."
                     value={postUrl}
                     onChange={(e) => setPostUrl(e.target.value)}
-                    className="bg-surface-2"
+                    className="bg-surface-2 min-h-[80px]"
+                    rows={2}
                   />
-                  <Button variant="outline" size="icon" onClick={() => handlePaste(setPostUrl)}>
-                    <ClipboardPaste className="h-4 w-4" />
-                  </Button>
-                  <Button variant="secondary" onClick={fetchPostData} disabled={isFetching || !postUrl}>
-                    {isFetching ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Fetch"}
-                  </Button>
+                  <div className="flex flex-col gap-2">
+                    <Button variant="outline" size="icon" onClick={() => handlePaste(setPostUrl)}>
+                      <ClipboardPaste className="h-4 w-4" />
+                    </Button>
+                    <Button variant="secondary" size="icon" onClick={fetchPostData} disabled={isFetching || !postUrl}>
+                      {isFetching ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                    </Button>
+                  </div>
                 </div>
               </div>
 
