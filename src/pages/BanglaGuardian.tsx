@@ -583,6 +583,14 @@ const BanglaGuardian = () => {
       await saveRecordDB(newRecord);
       setAutoRecords(prev => [newRecord, ...prev]);
 
+      if (postUrl && postUrl.includes('bangladeshguardian.com')) {
+        setProcessedUrls(prev => {
+          const next = new Set(prev);
+          next.add(postUrl.trim());
+          return next;
+        });
+      }
+
       toast.success("Photocard generated!");
       playAlert();
     } catch (error) {
@@ -594,12 +602,56 @@ const BanglaGuardian = () => {
   };
 
   const scrapeLatestLinks = async () => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const dates = [
+      today.toISOString().split('T')[0],
+      yesterday.toISOString().split('T')[0]
+    ];
+
     const proxies = [
       (u: string) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
       (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
       (u: string) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
     ];
 
+    let allLocs: string[] = [];
+
+    // Try sitemaps first as they are the most reliable for React-rendered sites
+    for (const dateStr of dates) {
+      const sitemapUrl = `https://www.bangladeshguardian.com/bangla-sitemap/sitemap-daily-${dateStr}.xml`;
+      let xml = '';
+
+      for (const proxy of proxies) {
+        try {
+          const response = await fetch(proxy(sitemapUrl));
+          if (response.ok) {
+            xml = await response.text();
+            if (xml && xml.includes('<loc>')) break;
+          }
+        } catch (e) {
+          console.warn("Proxy failed for sitemap fetch:", e);
+        }
+      }
+
+      if (xml) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(xml, 'application/xml');
+        const locs = Array.from(doc.querySelectorAll('url > loc')).map(l => l.textContent).filter(Boolean) as string[];
+        // Add newest from this sitemap to the top (sitemaps are usually chronological)
+        allLocs = [...allLocs, ...locs.reverse()];
+      }
+
+      if (allLocs.length >= 24) break;
+    }
+
+    if (allLocs.length > 0) {
+      return Array.from(new Set(allLocs)).slice(0, 12);
+    }
+
+    // Fallback to scraping the /latest page if sitemap fails
     const latestUrl = "https://www.bangladeshguardian.com/latest";
     let html = '';
     for (const proxy of proxies) {
