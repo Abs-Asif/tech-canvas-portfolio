@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { Download, RefreshCw, Image as ImageIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Settings2, X, ClipboardPaste, History, Clock, AlertCircle, ExternalLink, Eye, List, Zap, Play, Square } from "lucide-react";
+import { Download, RefreshCw, Image as ImageIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Settings2, X, ClipboardPaste, History, Clock, AlertCircle, ExternalLink, Eye, List, Zap, Play, Square, Trash2, Trash } from "lucide-react";
 import { toast } from "sonner";
 
 interface AutoRecord {
@@ -70,6 +70,28 @@ const initDB = (): Promise<IDBDatabase> => {
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
+  });
+};
+
+const deleteRecordDB = async (id: string) => {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    store.delete(id);
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => reject(tx.error);
+  });
+};
+
+const clearRecordsDB = async () => {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    store.clear();
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => reject(tx.error);
   });
 };
 
@@ -572,57 +594,12 @@ const BanglaGuardian = () => {
   };
 
   const scrapeLatestLinks = async () => {
-    // We'll try the daily sitemaps (today and yesterday) first since the site is heavily React-rendered
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    const dates = [
-      today.toISOString().split('T')[0],
-      yesterday.toISOString().split('T')[0]
-    ];
-
     const proxies = [
       (u: string) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
       (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
       (u: string) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
     ];
 
-    let allLocs: string[] = [];
-
-    for (const dateStr of dates) {
-      const sitemapUrl = `https://www.bangladeshguardian.com/bangla-sitemap/sitemap-daily-${dateStr}.xml`;
-      let xml = '';
-
-      for (const proxy of proxies) {
-        try {
-          const response = await fetch(proxy(sitemapUrl));
-          if (response.ok) {
-            xml = await response.text();
-            if (xml && xml.includes('<loc>')) break;
-          }
-        } catch (e) {
-          console.warn("Proxy failed for sitemap fetch:", e);
-        }
-      }
-
-      if (xml) {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(xml, 'application/xml');
-        // Use specific selector to avoid matching image:loc
-        const locs = Array.from(doc.querySelectorAll('url > loc')).map(l => l.textContent).filter(Boolean) as string[];
-        // Add newest from this sitemap to the top
-        allLocs = [...allLocs, ...locs.reverse()];
-      }
-
-      if (allLocs.length >= 12) break;
-    }
-
-    if (allLocs.length > 0) {
-      return allLocs.slice(0, 12);
-    }
-
-    // Fallback to scraping the /latest page if sitemap fails
     const latestUrl = "https://www.bangladeshguardian.com/latest";
     let html = '';
     for (const proxy of proxies) {
@@ -633,7 +610,7 @@ const BanglaGuardian = () => {
           if (html && html.includes('href=')) break;
         }
       } catch (e) {
-        console.warn("Proxy failed for fallback scraping:", e);
+        console.warn("Proxy failed for scraping /latest:", e);
       }
     }
 
@@ -757,19 +734,45 @@ const BanglaGuardian = () => {
     link.click();
   };
 
+  const handleDelete = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this photocard?")) {
+      try {
+        await deleteRecordDB(id);
+        setAutoRecords(prev => prev.filter(r => r.id !== id));
+        toast.success("Photocard deleted");
+      } catch (e) {
+        console.error(e);
+        toast.error("Failed to delete photocard");
+      }
+    }
+  };
+
+  const clearAllRecords = async () => {
+    if (window.confirm("Are you sure you want to delete ALL auto-generated photocards? This cannot be undone.")) {
+      try {
+        await clearRecordsDB();
+        setAutoRecords([]);
+        toast.success("All photocards deleted");
+      } catch (e) {
+        console.error(e);
+        toast.error("Failed to clear photocards");
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground p-4 md:p-8 font-mono">
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-4xl mx-auto space-y-6 md:space-y-8">
         <header className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl gradient-text">
             BANGLA GUARDIAN
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm sm:text-base">
             Generate professional photocards automatically.
           </p>
         </header>
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-2 gap-6 md:gap-8">
           <div className="space-y-6 terminal-window p-6">
             <div className="space-y-4">
               <div className="space-y-2">
@@ -980,52 +983,57 @@ const BanglaGuardian = () => {
 
         {autoRecords.length > 0 && (
           <div className="space-y-6 pt-8 border-t border-border">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <h2 className="text-2xl font-bold tracking-tighter flex items-center gap-2">
                 <List className="h-6 w-6 text-primary" />
                 AUTOMATED GENERATIONS
               </h2>
-              <span className="bg-surface-2 border border-border px-3 py-1 rounded-full text-[10px] font-bold">
-                {autoRecords.length} TOTAL
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="bg-surface-2 border border-border px-3 py-1 rounded-full text-[10px] font-bold">
+                  {autoRecords.length} TOTAL
+                </span>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={clearAllRecords}
+                  className="h-7 text-[10px] px-3"
+                >
+                  <Trash2 className="h-3 w-3 mr-1" /> DELETE ALL
+                </Button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {autoRecords.map((record) => (
                 <div key={record.id} className="terminal-window overflow-hidden flex flex-col group animate-fade-in-up">
-                  <div className="terminal-header flex items-center justify-between py-1 px-3">
-                    <span className="text-[8px] font-mono opacity-50 truncate max-w-[150px]">{record.title}</span>
-                    <span className="text-[8px] font-mono opacity-50">{new Date(record.timestamp).toLocaleString()}</span>
+                  <div className="terminal-header flex items-center justify-between py-1.5 px-3">
+                    <span className="text-[10px] font-mono opacity-70 truncate max-w-[150px]">{record.title}</span>
+                    <span className="text-[10px] font-mono opacity-50">{new Date(record.timestamp).toLocaleString()}</span>
                   </div>
                   <div className="aspect-square relative bg-surface-1 border-b border-border overflow-hidden">
                     <img src={record.previewUrl} alt={record.title} className="w-full h-full object-contain" />
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm">
-                      <Button variant="secondary" size="icon" onClick={() => {
+                  </div>
+                  <div className="p-3 flex gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="flex-1 text-[10px] h-8"
+                      onClick={() => {
                         const link = document.createElement('a');
                         link.download = `${record.title}.png`;
                         link.href = record.previewUrl;
                         link.click();
-                      }} title="Download">
-                        <Download className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="icon" onClick={() => window.open(record.url, '_blank')} title="View Post">
-                        <ExternalLink className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="p-3 flex-1 flex flex-col justify-between">
-                    <h4 className="text-xs font-bold line-clamp-2 mb-2">{record.title}</h4>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-[10px] h-7 hover:bg-surface-2"
-                      onClick={() => {
-                        setPreviewUrl(record.previewUrl);
-                        setGeneratedTitle(record.title);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
                       }}
                     >
-                      <Eye className="h-3 w-3 mr-1" /> Preview Main
+                      <Download className="h-3 w-3 mr-1" /> Download
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="flex-1 text-[10px] h-8"
+                      onClick={() => handleDelete(record.id)}
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" /> Delete
                     </Button>
                   </div>
                 </div>
