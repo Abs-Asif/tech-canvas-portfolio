@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { Download, RefreshCw, Image as ImageIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Settings2, X, ClipboardPaste, History, Clock, AlertCircle, ExternalLink, Eye, List, Zap, Play, Square, Trash2, Trash } from "lucide-react";
+import { Download, RefreshCw, Image as ImageIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Settings2, X, ClipboardPaste, History, Clock, AlertCircle, List, Zap, Play, Square, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface AutoRecord {
@@ -602,64 +602,21 @@ const BanglaGuardian = () => {
   };
 
   const scrapeLatestLinks = async () => {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    const dates = [
-      today.toISOString().split('T')[0],
-      yesterday.toISOString().split('T')[0]
-    ];
-
+    const latestUrl = "https://www.bangladeshguardian.com/latest";
     const proxies = [
-      (u: string) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
       (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+      (u: string) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
       (u: string) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
     ];
 
-    let allLocs: string[] = [];
-
-    // Try sitemaps first as they are the most reliable for React-rendered sites
-    for (const dateStr of dates) {
-      const sitemapUrl = `https://www.bangladeshguardian.com/bangla-sitemap/sitemap-daily-${dateStr}.xml`;
-      let xml = '';
-
-      for (const proxy of proxies) {
-        try {
-          const response = await fetch(proxy(sitemapUrl));
-          if (response.ok) {
-            xml = await response.text();
-            if (xml && xml.includes('<loc>')) break;
-          }
-        } catch (e) {
-          console.warn("Proxy failed for sitemap fetch:", e);
-        }
-      }
-
-      if (xml) {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(xml, 'application/xml');
-        const locs = Array.from(doc.querySelectorAll('url > loc')).map(l => l.textContent).filter(Boolean) as string[];
-        // Add newest from this sitemap to the top (sitemaps are usually chronological)
-        allLocs = [...allLocs, ...locs.reverse()];
-      }
-
-      if (allLocs.length >= 24) break;
-    }
-
-    if (allLocs.length > 0) {
-      return Array.from(new Set(allLocs)).slice(0, 12);
-    }
-
-    // Fallback to scraping the /latest page if sitemap fails
-    const latestUrl = "https://www.bangladeshguardian.com/latest";
     let html = '';
     for (const proxy of proxies) {
       try {
         const response = await fetch(proxy(latestUrl));
         if (response.ok) {
           html = await response.text();
-          if (html && html.includes('href=')) break;
+          // SPA pages might have very little HTML, so we check for basic structure
+          if (html && html.includes('<html')) break;
         }
       } catch (e) {
         console.warn("Proxy failed for scraping /latest:", e);
@@ -668,25 +625,52 @@ const BanglaGuardian = () => {
 
     if (!html) return [];
 
+    const extractedLinks: string[] = [];
+
+    // 1. Standard A tags
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
-    const links = Array.from(doc.querySelectorAll('a'))
-      .map(a => a.getAttribute('href'))
-      .filter(Boolean)
-      .map(href => (href!.startsWith('/') ? `https://www.bangladeshguardian.com${href}` : href!))
+    Array.from(doc.querySelectorAll('a')).forEach(a => {
+      const href = a.getAttribute('href');
+      if (href) extractedLinks.push(href);
+    });
+
+    // 2. Aggressive Regex search for URLs in scripts/text (important for SPA)
+    // Looking for patterns like /politics/some-article or https://www.bangladeshguardian.com/national/slug
+    const urlPatterns = [
+      /https:\/\/www\.bangladeshguardian\.com\/[a-z-]+\/[a-z0-9-]+/g,
+      /"\/[a-z-]+\/[a-z0-9-]+"/g,
+      /'\/[a-z-]+\/[a-z0-9-]+'/g
+    ];
+
+    urlPatterns.forEach(pattern => {
+      const matches = html.match(pattern);
+      if (matches) {
+        matches.forEach(m => {
+          let cleaned = m.replace(/['"]/g, '');
+          extractedLinks.push(cleaned);
+        });
+      }
+    });
+
+    const finalLinks = Array.from(new Set(extractedLinks))
+      .map(href => (href.startsWith('/') ? `https://www.bangladeshguardian.com${href}` : href))
       .filter(href => {
         try {
           const url = new URL(href);
+          const p = url.pathname;
           return url.hostname.includes('bangladeshguardian.com') &&
-                 url.pathname.length > 10 &&
-                 !url.pathname.includes('/category/') &&
-                 !['/latest', '/about', '/contact', '/privacy-policy'].includes(url.pathname);
+                 p.split('/').length >= 3 && // Requires at least /category/slug
+                 !p.includes('/category/') &&
+                 !p.includes('/static/') &&
+                 !p.includes('/media/') &&
+                 !['/latest', '/about', '/contact', '/privacy-policy', '/terms-condition'].includes(p);
         } catch {
           return false;
         }
       });
 
-    return Array.from(new Set(links)).slice(0, 12);
+    return finalLinks.slice(0, 12);
   };
 
   const checkAndGenerate = async () => {
@@ -787,15 +771,13 @@ const BanglaGuardian = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this photocard?")) {
-      try {
-        await deleteRecordDB(id);
-        setAutoRecords(prev => prev.filter(r => r.id !== id));
-        toast.success("Photocard deleted");
-      } catch (e) {
-        console.error(e);
-        toast.error("Failed to delete photocard");
-      }
+    try {
+      await deleteRecordDB(id);
+      setAutoRecords(prev => prev.filter(r => r.id !== id));
+      toast.success("Photocard deleted");
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to delete photocard");
     }
   };
 
@@ -813,19 +795,19 @@ const BanglaGuardian = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-4 md:p-8 font-mono">
-      <div className="max-w-4xl mx-auto space-y-6 md:space-y-8">
-        <header className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl gradient-text">
+    <div className="min-h-screen bg-background text-foreground p-3 md:p-8 font-mono">
+      <div className="max-w-4xl mx-auto space-y-8">
+        <header className="space-y-2 text-center md:text-left pt-4 md:pt-0">
+          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter gradient-text">
             BANGLA GUARDIAN
           </h1>
-          <p className="text-muted-foreground text-sm sm:text-base">
-            Generate professional photocards automatically.
+          <p className="text-muted-foreground text-xs md:text-base uppercase tracking-[0.2em] font-bold opacity-80">
+            Professional Photocard Automation
           </p>
         </header>
 
-        <div className="grid md:grid-cols-2 gap-6 md:gap-8">
-          <div className="space-y-6 terminal-window p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-6 terminal-window p-5 md:p-6">
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="postUrl">Post URL (www.bangladeshguardian.com)</Label>
@@ -972,8 +954,8 @@ const BanglaGuardian = () => {
               />
             </div>
 
-            <div className="terminal-window p-4 space-y-4">
-              <div className="flex items-center justify-between border-b border-border pb-2">
+            <div className="terminal-window p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-border pb-2.5">
                 <h3 className="text-sm font-bold flex items-center gap-2 text-primary">
                   <Zap className="h-4 w-4" />
                   AUTOMATION STATUS
@@ -1035,12 +1017,12 @@ const BanglaGuardian = () => {
 
         {autoRecords.length > 0 && (
           <div className="space-y-6 pt-8 border-t border-border">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <h2 className="text-2xl font-bold tracking-tighter flex items-center gap-2">
-                <List className="h-6 w-6 text-primary" />
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-border/50 pb-4">
+              <h2 className="text-xl md:text-2xl font-bold tracking-tighter flex items-center gap-2">
+                <List className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                 AUTOMATED GENERATIONS
               </h2>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between md:justify-end gap-3">
                 <span className="bg-surface-2 border border-border px-3 py-1 rounded-full text-[10px] font-bold">
                   {autoRecords.length} TOTAL
                 </span>
@@ -1048,28 +1030,34 @@ const BanglaGuardian = () => {
                   variant="destructive"
                   size="sm"
                   onClick={clearAllRecords}
-                  className="h-7 text-[10px] px-3"
+                  className="h-8 text-[10px] px-4 font-bold"
                 >
-                  <Trash2 className="h-3 w-3 mr-1" /> DELETE ALL
+                  <Trash2 className="h-3.5 w-3.5 mr-1.5" /> DELETE PHOTOCARDS
                 </Button>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {autoRecords.map((record) => (
-                <div key={record.id} className="terminal-window overflow-hidden flex flex-col group animate-fade-in-up">
-                  <div className="terminal-header flex items-center justify-between py-1.5 px-3">
-                    <span className="text-[10px] font-mono opacity-70 truncate max-w-[150px]">{record.title}</span>
-                    <span className="text-[10px] font-mono opacity-50">{new Date(record.timestamp).toLocaleString()}</span>
+                <div key={record.id} className="flex flex-col animate-fade-in-up">
+                  {/* Title Above */}
+                  <div className="mb-2 px-1">
+                    <h3 className="text-[11px] font-bold font-mono text-primary line-clamp-2 leading-tight min-h-[2.4em]">
+                      {record.title}
+                    </h3>
                   </div>
-                  <div className="aspect-square relative bg-surface-1 border-b border-border overflow-hidden">
+
+                  {/* Image Tile */}
+                  <div className="terminal-window overflow-hidden aspect-square relative bg-surface-1 shadow-md hover:shadow-primary/10 transition-shadow">
                     <img src={record.previewUrl} alt={record.title} className="w-full h-full object-contain" />
                   </div>
-                  <div className="p-3 flex gap-2">
+
+                  {/* Buttons Below */}
+                  <div className="mt-3 flex gap-2">
                     <Button
                       variant="secondary"
                       size="sm"
-                      className="flex-1 text-[10px] h-8"
+                      className="flex-1 text-[10px] h-9 font-bold"
                       onClick={() => {
                         const link = document.createElement('a');
                         link.download = `${record.title}.png`;
@@ -1077,15 +1065,19 @@ const BanglaGuardian = () => {
                         link.click();
                       }}
                     >
-                      <Download className="h-3 w-3 mr-1" /> Download
+                      <Download className="h-3.5 w-3.5 mr-1.5" /> DOWNLOAD
                     </Button>
                     <Button
                       variant="destructive"
                       size="sm"
-                      className="flex-1 text-[10px] h-8"
-                      onClick={() => handleDelete(record.id)}
+                      className="flex-1 text-[10px] h-9 font-bold"
+                      onClick={() => {
+                        if (window.confirm("Delete this photocard?")) {
+                          handleDelete(record.id);
+                        }
+                      }}
                     >
-                      <Trash2 className="h-3 w-3 mr-1" /> Delete
+                      <Trash2 className="h-3.5 w-3.5 mr-1.5" /> DELETE
                     </Button>
                   </div>
                 </div>
