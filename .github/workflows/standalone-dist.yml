@@ -16,7 +16,18 @@ jobs:
       - name: Install dependencies
         run: bun install
       - name: Build
-        run: bun run build --base ./
+        run: VITE_STANDALONE_SECRET=true bun run build --base ./
+      - name: Cleanup Standalone Dist
+        run: |
+          cd dist
+          # Delete unwanted images from public root
+          rm -f Example.png T1.png T2.png T3.png template.png profile-photo.png reel-bg.png
+          # Delete CNAME
+          rm -f CNAME
+          # Delete unnecessary fonts, keeping only what's required for Secret page
+          if [ -d "fonts" ]; then
+            find fonts/ -type f ! -name 'SolaimanLipi-Regular.ttf' ! -name 'Cambria.ttf' ! -name 'cambriab.ttf' -delete
+          fi
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
