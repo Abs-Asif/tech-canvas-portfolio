@@ -642,8 +642,8 @@ const Secret = () => {
             <div className="p-4 bg-primary/10 rounded-full">
               <Lock className="w-12 h-12 text-primary" />
             </div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Security Protocol</h1>
-            <p className="text-zinc-500 text-sm text-center">Please enter the security key to gain access to this terminal.</p>
+            <h1 className="text-2xl font-bold text-white tracking-tight">Access Restricted</h1>
+            <p className="text-zinc-500 text-sm text-center">You need Permission to view this page.</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
